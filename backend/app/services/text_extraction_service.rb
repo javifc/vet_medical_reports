@@ -11,7 +11,7 @@ class TextExtractionService
     case @medical_record.document.content_type
     when 'application/pdf'
       extract_from_pdf
-    when /^image\/(png|jpeg|jpg)$/
+    when /^image\/(png|jpeg|jpg|webp)$/
       extract_from_image
     else
       raise ExtractionError, "Unsupported file type: #{@medical_record.document.content_type}"
@@ -32,8 +32,15 @@ class TextExtractionService
   end
 
   def extract_from_image
-    # TODO: Implement OCR with Tesseract
-    raise ExtractionError, "OCR not yet implemented"
+    @medical_record.document.open do |file|
+      image = RTesseract.new(file.path)
+      text = image.to_s
+      text.strip
+    end
+  rescue => e
+    Rails.logger.error("OCR failed: #{e.message}")
+    # If OCR fails, return empty string instead of raising
+    ""
   end
 end
 

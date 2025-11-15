@@ -247,6 +247,7 @@ GEM
       rspec-mocks (~> 3.13)
       rspec-support (~> 3.13)
     rspec-support (3.13.6)
+    rtesseract (3.1.4)
     ruby-rc4 (0.1.5)
     securerandom (0.4.1)
     shoulda-matchers (6.5.0)
@@ -289,6 +290,7 @@ DEPENDENCIES
   rack-cors
   rails (~> 7.1.5, >= 7.1.5.2)
   rspec-rails (~> 6.1)
+  rtesseract
   shoulda-matchers (~> 6.0)
   tzinfo-data
 

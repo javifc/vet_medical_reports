@@ -40,6 +40,7 @@ gem 'blueprinter'
 
 # Document processing
 gem 'pdf-reader'
+gem 'rtesseract' # OCR for images
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
