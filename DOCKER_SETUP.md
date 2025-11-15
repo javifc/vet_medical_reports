@@ -46,7 +46,27 @@ All services are configured via environment variables in `docker-compose.yml`:
 - `DATABASE_USER=postgres`
 - `DATABASE_PASSWORD=postgres`
 - `REDIS_URL=redis://redis:6379/0`
-- `OLLAMA_URL=http://ollama:11434`
+- `OLLAMA_URL=http://ollama:11434` (currently disabled)
+- `GROQ_API_KEY=your_api_key_here` (**REQUIRED** - Get from https://console.groq.com/keys)
+- `GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions`
+
+### Setting up Groq API
+
+The application now uses Groq for fast AI-powered data extraction:
+
+1. Sign up for a free account at https://console.groq.com
+2. Get your API key from https://console.groq.com/keys
+3. Add it to `docker-compose.yml` in the `backend` service environment:
+   ```yaml
+   environment:
+     - GROQ_API_KEY=your_actual_api_key_here
+   ```
+4. Restart the backend service:
+   ```bash
+   docker-compose restart backend sidekiq
+   ```
+
+**Note**: Ollama code is kept for reference but currently disabled in favor of Groq for better performance.
 
 ## Local Development (without Docker)
 
@@ -141,4 +161,5 @@ docker-compose down
 docker-compose build --no-cache
 docker-compose up
 ```
+
 
