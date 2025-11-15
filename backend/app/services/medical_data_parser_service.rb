@@ -70,11 +70,11 @@ class MedicalDataParserService
       # Italian labels
       /Specie:\s*([^\n]+)/i,
       # Common species in multiple languages
-      /\b(Dog|Cat|Bird|Rabbit|Hamster|Guinea Pig|Ferret|Horse|Cow|Pig)\b/i,
-      /\b(Perro|Gato|Pájaro|Conejo|Hámster|Cobaya|Hurón|Caballo|Vaca|Cerdo)\b/i,
-      /\b(Chien|Chat|Oiseau|Lapin|Hamster|Cochon d'Inde|Furet|Cheval|Vache|Porc)\b/i,
-      /\b(Cão|Gato|Pássaro|Coelho|Hamster|Porquinho da Índia|Furão|Cavalo|Vaca|Porco)\b/i,
-      /\b(Cane|Gatto|Uccello|Coniglio|Criceto|Cavia|Furetto|Cavallo|Mucca|Maiale)\b/i
+      /\b(Dog|Cat)\b/i,
+      /\b(Perro|Gato)\b/i,
+      /\b(Chien|Chat)\b/i,
+      /\b(Cão|Gato)\b/i,
+      /\b(Cane|Gatto)\b/i
     ]
     extract_first_match(patterns)
   end

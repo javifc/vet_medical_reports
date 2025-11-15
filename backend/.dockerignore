@@ -1,31 +1,36 @@
-# See https://docs.docker.com/engine/reference/builder/#dockerignore-file for more about ignoring files.
+# Git
+.git
+.gitignore
 
-# Ignore git directory.
-/.git/
+# Logs
+log/*
+tmp/*
+*.log
 
-# Ignore bundler config.
-/.bundle
+# Cache
+tmp/cache
 
-# Ignore all environment files (except templates).
-/.env*
-!/.env*.erb
+# Storage
+storage/*
 
-# Ignore all default key files.
-/config/master.key
-/config/credentials/*.key
+# Environment files
+.env
+.env.*
 
-# Ignore all logfiles and tempfiles.
-/log/*
-/tmp/*
-!/log/.keep
-!/tmp/.keep
+# Dependencies
+node_modules/
 
-# Ignore pidfiles, but keep the directory.
-/tmp/pids/*
-!/tmp/pids/.keep
+# IDE
+.vscode/
+.idea/
 
-# Ignore storage (uploaded files in development and any SQLite databases).
-/storage/*
-!/storage/.keep
-/tmp/storage/*
-!/tmp/storage/.keep
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Documentation
+README.md
+doc/
