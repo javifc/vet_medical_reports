@@ -35,7 +35,8 @@ Rails.application.configure do
 
   # Use async adapter for development (no Redis needed)
   # In production with Docker, we'll use Sidekiq + Redis
-  config.active_job.queue_adapter = :async
+  # Temporarily using :inline for debugging (change back to :async when done)
+  config.active_job.queue_adapter = :inline
 
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
