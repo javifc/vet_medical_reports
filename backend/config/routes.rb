@@ -11,7 +11,11 @@ Rails.application.routes.draw do
   # API v1 routes
   namespace :api do
     namespace :v1 do
-      # Future endpoints will go here
+      resources :medical_records, only: [:index, :show, :update] do
+        collection do
+          post :upload
+        end
+      end
     end
   end
 end

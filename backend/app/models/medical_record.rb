@@ -2,6 +2,9 @@ class MedicalRecord < ApplicationRecord
   # Active Storage
   has_one_attached :document
 
+  # Callbacks
+  before_save :set_original_filename, if: -> { document.attached? && original_filename.blank? }
+
   # Enums
   enum status: {
     pending: 'pending',
@@ -12,6 +15,7 @@ class MedicalRecord < ApplicationRecord
 
   # Validations
   validates :status, presence: true, inclusion: { in: statuses.keys }
+  validates :document, presence: true, on: :create
   validate :document_format, if: -> { document.attached? }
 
   # Scopes
@@ -28,6 +32,10 @@ class MedicalRecord < ApplicationRecord
   end
 
   private
+
+  def set_original_filename
+    self.original_filename = document.filename.to_s if document.attached?
+  end
 
   def document_format
     return unless document.attached?
