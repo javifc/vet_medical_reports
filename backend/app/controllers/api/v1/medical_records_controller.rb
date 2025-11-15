@@ -4,12 +4,12 @@ class Api::V1::MedicalRecordsController < ApplicationController
   # GET /api/v1/medical_records
   def index
     @medical_records = MedicalRecord.recent
-    render json: @medical_records
+    render json: MedicalRecordBlueprint.render(@medical_records, view: :list)
   end
 
   # GET /api/v1/medical_records/:id
   def show
-    render json: @medical_record
+    render json: MedicalRecordBlueprint.render(@medical_record)
   end
 
   # POST /api/v1/medical_records/upload
@@ -22,7 +22,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
 
     if @medical_record.save
       # TODO: Trigger async processing job here
-      render json: @medical_record, status: :created
+      render json: MedicalRecordBlueprint.render(@medical_record), status: :created
     else
       render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_entity
     end
@@ -31,7 +31,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
   # PATCH/PUT /api/v1/medical_records/:id
   def update
     if @medical_record.update(medical_record_params)
-      render json: @medical_record
+      render json: MedicalRecordBlueprint.render(@medical_record)
     else
       render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_entity
     end
