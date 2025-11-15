@@ -11,9 +11,21 @@ class ProcessMedicalRecordJob < ApplicationJob
     extraction_service = TextExtractionService.new(medical_record)
     extracted_text = extraction_service.extract
 
-    # Save extracted text
+    # Parse and structure medical data
+    parser_service = MedicalDataParserService.new(extracted_text)
+    structured_data = parser_service.parse
+
+    # Save extracted text and structured data
     medical_record.update(
       raw_text: extracted_text,
+      structured_data: structured_data,
+      pet_name: structured_data[:pet_name],
+      species: structured_data[:species],
+      breed: structured_data[:breed],
+      age: structured_data[:age],
+      owner_name: structured_data[:owner_name],
+      diagnosis: structured_data[:diagnosis],
+      treatment: structured_data[:treatment],
       status: :completed
     )
 
