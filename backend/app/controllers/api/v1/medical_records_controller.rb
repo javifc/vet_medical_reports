@@ -21,7 +21,8 @@ class Api::V1::MedicalRecordsController < ApplicationController
     @medical_record = MedicalRecord.new(document: params[:document])
 
     if @medical_record.save
-      # TODO: Trigger async processing job here
+      # Trigger async processing
+      ProcessMedicalRecordJob.perform_later(@medical_record.id)
       render json: MedicalRecordBlueprint.render(@medical_record), status: :created
     else
       render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_entity
