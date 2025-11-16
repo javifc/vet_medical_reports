@@ -1,6 +1,6 @@
 # Docker Setup
 
-## Services
+## Backend Services only
 
 The docker-compose configuration includes:
 
@@ -45,7 +45,8 @@ All services are configured via environment variables in `docker-compose.yml`:
 - `DATABASE_USER=postgres`
 - `DATABASE_PASSWORD=postgres`
 - `REDIS_URL=redis://redis:6379/0`
-- `GROQ_API_KEY=your_api_key_here` (**REQUIRED** - Get from https://console.groq.com/keys)
+- `GROQ_ENABLED=true`
+- `GROQ_API_KEY=your_api_key_here` (**REQUIRED** - Get it from https://console.groq.com/keys)
 - `GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions`
 
 ### Setting up Groq API
@@ -64,87 +65,6 @@ The application uses Groq for fast AI-powered data extraction:
    ```
 
 **Note**: If Groq API is not available or configured, the system automatically falls back to rule-based parsing.
-
-## Local Development (without Docker)
-
-### Why Tests Don't Work Outside Docker
-
-When you try to run tests outside Docker, you'll likely encounter errors because the local environment is missing critical dependencies and configuration that Docker provides automatically:
-
-**Missing Requirements**:
-1. **PostgreSQL** with specific configuration:
-   - Database: `vet_medical_report_test`
-   - User: `postgres`
-   - Password: `postgres`
-   - Host: `localhost`
-   - Port: `5432`
-
-2. **Redis** running on `localhost:6379` (for Sidekiq background jobs)
-
-3. **Tesseract OCR** installed with language packs:
-   - `tesseract-ocr`
-   - `tesseract-ocr-eng` (English)
-   - `tesseract-ocr-spa` (Spanish)
-   - `tesseract-ocr-fra` (French)
-   - `tesseract-ocr-por` (Portuguese)
-   - `tesseract-ocr-ita` (Italian)
-
-4. **Environment Variables**:
-   - `GROQ_API_KEY` (for AI-powered extraction)
-   - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, etc.
-
-5. **Ruby gems** installed locally with `bundle install`
-
-### If You Still Want to Run Locally
-
-1. Install PostgreSQL and create the test database:
-   ```bash
-   createdb vet_medical_report_test
-   ```
-
-2. Install Redis:
-   ```bash
-   # macOS
-   brew install redis
-   brew services start redis
-   ```
-
-3. Install Tesseract with language packs:
-   ```bash
-   # macOS
-   brew install tesseract tesseract-lang
-   ```
-
-4. Install gems:
-   ```bash
-   cd backend
-   bundle install
-   ```
-
-5. Set environment variables in `.env` or export them:
-   ```bash
-   export DATABASE_HOST=localhost
-   export DATABASE_PORT=5432
-   export DATABASE_NAME=vet_medical_report_development
-   export DATABASE_USER=postgres
-   export DATABASE_PASSWORD=postgres
-   export REDIS_URL=redis://localhost:6379/0
-   export GROQ_API_KEY=your_api_key_here
-   ```
-
-6. Run migrations:
-   ```bash
-   cd backend
-   RAILS_ENV=test bundle exec rails db:create db:migrate
-   ```
-
-7. Run tests:
-   ```bash
-   cd backend
-   RAILS_ENV=test bundle exec rspec
-   ```
-
-**Recommendation**: Use Docker for development and testing. It's much simpler and ensures consistency across all environments.
 
 ## Useful Commands
 
@@ -182,8 +102,6 @@ docker-compose exec backend rails db:migrate
 # From outside the container (recommended)
 docker-compose exec backend bash -c "cd /app && RAILS_ENV=test bundle exec rspec"
 
-# Or with detailed output
-docker-compose exec backend bash -c "cd /app && RAILS_ENV=test bundle exec rspec --format documentation"
 
 # From inside the container
 docker exec -it vet_medical_report_backend bash
@@ -197,25 +115,6 @@ NameError: uninitialized constant Shoulda
 ```
 This happens because Rails is not initialized in test mode.
 
-### Access PostgreSQL
-
-```bash
-docker-compose exec postgres psql -U postgres -d vet_medical_report_development
-```
-
-### Access Redis CLI
-
-```bash
-docker-compose exec redis redis-cli
-```
-
-## Volumes
-
-The following volumes are created to persist data:
-
-- `postgres_data`: PostgreSQL database files
-- `redis_data`: Redis persistence files
-- `storage_data`: Active Storage files (uploaded documents)
 
 ## Troubleshooting
 
