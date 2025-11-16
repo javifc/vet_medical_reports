@@ -8,13 +8,11 @@ class ProcessMedicalRecordJob < ApplicationJob
     medical_record.update(status: :processing)
 
     # Extract text from document
-    extraction_service = TextExtractionService.new(medical_record)
-    extracted_text = extraction_service.extract
+    extracted_text = TextExtractionService.new(medical_record).extract
     Rails.logger.info("JOB - Extracted #{extracted_text&.length || 0} characters")
 
     # Parse and structure medical data
-    parser_service = MedicalDataParserService.new(extracted_text)
-    structured_data = parser_service.parse
+    structured_data = MedicalDataParserService.new(extracted_text).parse
     Rails.logger.info("JOB - Structured data: #{structured_data.inspect}")
 
     # Save extracted text and structured data

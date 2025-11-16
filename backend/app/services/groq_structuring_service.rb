@@ -45,13 +45,14 @@ class GroqStructuringService
   private
 
   def call_groq
+    # https://console.groq.com/keys
     api_key = ENV.fetch('GROQ_API_KEY')
     url = ENV.fetch('GROQ_API_URL', 'https://api.groq.com/openai/v1/chat/completions')
     uri = URI.parse(url)
     
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
-    http.read_timeout = 30  # Groq is much faster than Ollama
+    http.read_timeout = 30 
     
     request = Net::HTTP::Post.new(uri.path, {
       'Content-Type' => 'application/json',

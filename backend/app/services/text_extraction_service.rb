@@ -16,6 +16,7 @@ class TextExtractionService
     when /^image\/(png|jpeg|jpg|webp)$/
       extract_from_image
     else
+      #TODO: add word document extraction
       raise ExtractionError, "Unsupported file type: #{@medical_record.document.content_type}"
     end
     

@@ -6,7 +6,6 @@ The docker-compose configuration includes:
 
 - **PostgreSQL 14**: Database server (port 5432)
 - **Redis 7**: Queue backend for Sidekiq (port 6379)
-- **Ollama**: Local LLM server (port 11434)
 - **Rails Backend**: API server (port 3000)
 - **Sidekiq**: Background job processor
 
@@ -46,27 +45,25 @@ All services are configured via environment variables in `docker-compose.yml`:
 - `DATABASE_USER=postgres`
 - `DATABASE_PASSWORD=postgres`
 - `REDIS_URL=redis://redis:6379/0`
-- `OLLAMA_URL=http://ollama:11434` (currently disabled)
 - `GROQ_API_KEY=your_api_key_here` (**REQUIRED** - Get from https://console.groq.com/keys)
 - `GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions`
 
 ### Setting up Groq API
 
-The application now uses Groq for fast AI-powered data extraction:
+The application uses Groq for fast AI-powered data extraction:
 
 1. Sign up for a free account at https://console.groq.com
 2. Get your API key from https://console.groq.com/keys
-3. Add it to `docker-compose.yml` in the `backend` service environment:
-   ```yaml
-   environment:
-     - GROQ_API_KEY=your_actual_api_key_here
-   ```
-4. Restart the backend service:
+3. Export it as an environment variable before starting Docker:
    ```bash
-   docker-compose restart backend sidekiq
+   export GROQ_API_KEY=your_actual_api_key_here
+   ```
+4. Start the services:
+   ```bash
+   docker-compose up -d
    ```
 
-**Note**: Ollama code is kept for reference but currently disabled in favor of Groq for better performance.
+**Note**: If Groq API is not available or configured, the system automatically falls back to rule-based parsing.
 
 ## Local Development (without Docker)
 
@@ -79,16 +76,6 @@ If you prefer to run services locally:
 
 The configuration in `database.yml` and `sidekiq.rb` will fall back to localhost defaults.
 
-## Ollama Models
-
-After starting Ollama container, you need to pull a model:
-
-```bash
-docker exec -it vet_medical_report_ollama ollama pull llama3
-```
-
-Or use any other model available in Ollama registry.
-
 ## Useful Commands
 
 ### View logs
@@ -100,7 +87,6 @@ docker-compose logs -f
 # Specific service
 docker-compose logs -f backend
 docker-compose logs -f sidekiq
-docker-compose logs -f ollama
 ```
 
 ### Access Rails console
@@ -139,14 +125,13 @@ The following volumes are created to persist data:
 
 - `postgres_data`: PostgreSQL database files
 - `redis_data`: Redis persistence files
-- `ollama_data`: Ollama models and configuration
-- `bundle_cache`: Ruby gems cache
+- `storage_data`: Active Storage files (uploaded documents)
 
 ## Troubleshooting
 
 ### Port already in use
 
-If ports 3000, 5432, 6379, or 11434 are already in use, you can modify them in `docker-compose.yml`.
+If ports 3000, 5432, or 6379 are already in use, you can modify them in `docker-compose.yml`.
 
 ### Permission issues
 

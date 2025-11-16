@@ -7,6 +7,7 @@ class MedicalRecord < ApplicationRecord
 
   # Enums
   enum status: {
+    created: 'created',
     pending: 'pending',
     processing: 'processing',
     completed: 'completed',
@@ -21,6 +22,12 @@ class MedicalRecord < ApplicationRecord
   # Scopes
   scope :recent, -> { order(created_at: :desc) }
   scope :by_status, ->(status) { where(status: status) }
+
+
+  def initialize(attributes = {})
+    super(attributes)
+    self.status ||= :created
+  end
 
   # Instance methods
   def processed?

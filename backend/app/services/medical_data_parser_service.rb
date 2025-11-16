@@ -30,15 +30,6 @@ class MedicalDataParserService
       Rails.logger.info("PARSER - Groq not available, using rule-based parsing")
     end
     
-    # NOTE: Ollama code is kept below for reference but disabled
-    # ollama_available = OllamaStructuringService.ollama_available?
-    # if ollama_available
-    #   ollama_data = extract_with_ollama
-    #   if ollama_data.size >= 3
-    #     return ollama_data
-    #   end
-    # end
-
     # Fallback to rule-based parsing
     Rails.logger.info("PARSER - Using rule-based parsing")
     structured_data = extract_with_rules
@@ -282,13 +273,6 @@ class MedicalDataParserService
     GroqStructuringService.new(@raw_text).structure
   rescue => e
     Rails.logger.error("Groq extraction failed: #{e.message}")
-    {}
-  end
-
-  def extract_with_ollama
-    OllamaStructuringService.new(@raw_text).structure
-  rescue => e
-    Rails.logger.error("Ollama extraction failed: #{e.message}")
     {}
   end
 end
