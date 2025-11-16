@@ -11,6 +11,13 @@ Rails.application.routes.draw do
   # API v1 routes
   namespace :api do
     namespace :v1 do
+      # Authentication routes
+      post 'auth/register', to: 'auth#register'
+      post 'auth/login', to: 'auth#login'
+      get 'auth/me', to: 'auth#me'
+      delete 'auth/logout', to: 'auth#logout'
+
+      # Medical records routes (protected)
       resources :medical_records, only: [:index, :show, :update] do
         collection do
           post :upload

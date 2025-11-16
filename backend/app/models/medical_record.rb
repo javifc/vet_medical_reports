@@ -1,4 +1,7 @@
 class MedicalRecord < ApplicationRecord
+  # Associations
+  belongs_to :user
+
   # Active Storage
   has_one_attached :document
 

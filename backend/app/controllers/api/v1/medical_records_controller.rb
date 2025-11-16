@@ -1,9 +1,10 @@
 class Api::V1::MedicalRecordsController < ApplicationController
+  before_action :authenticate_user!
   before_action :set_medical_record, only: [:show, :update]
 
   # GET /api/v1/medical_records
   def index
-    @medical_records = MedicalRecord.recent
+    @medical_records = current_user.medical_records.recent
     render json: MedicalRecordBlueprint.render(@medical_records, view: :list)
   end
 
@@ -18,7 +19,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
       return render json: { error: 'Document is required' }, status: :unprocessable_entity
     end
 
-    @medical_record = MedicalRecord.new(document: params[:document])
+    @medical_record = current_user.medical_records.new(document: params[:document])
 
     if @medical_record.save
       ProcessMedicalRecordJob.perform_later(@medical_record.id)
@@ -40,7 +41,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
   private
 
   def set_medical_record
-    @medical_record = MedicalRecord.find(params[:id])
+    @medical_record = current_user.medical_records.find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render json: { error: 'Medical record not found' }, status: :not_found
   end
