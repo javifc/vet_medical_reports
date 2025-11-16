@@ -249,7 +249,20 @@ export const MedicalRecordDetail: React.FC = () => {
             {record.original_filename && (
               <div className="detail-field">
                 <label>Original File</label>
-                <p>📎 {record.original_filename}</p>
+                {record.document_url ? (
+                  <p>
+                    <a 
+                      href={`http://localhost:3000${record.document_url}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="document-link"
+                    >
+                      📎 {record.original_filename} ⬇️
+                    </a>
+                  </p>
+                ) : (
+                  <p>📎 {record.original_filename}</p>
+                )}
               </div>
             )}
 
