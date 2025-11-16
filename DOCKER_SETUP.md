@@ -67,14 +67,84 @@ The application uses Groq for fast AI-powered data extraction:
 
 ## Local Development (without Docker)
 
-If you prefer to run services locally:
+### Why Tests Don't Work Outside Docker
 
-1. Install PostgreSQL, Redis locally
-2. Set environment variables or use defaults (localhost)
-3. Start Rails: `bundle exec rails s`
-4. Start Sidekiq: `bundle exec sidekiq`
+When you try to run tests outside Docker, you'll likely encounter errors because the local environment is missing critical dependencies and configuration that Docker provides automatically:
 
-The configuration in `database.yml` and `sidekiq.rb` will fall back to localhost defaults.
+**Missing Requirements**:
+1. **PostgreSQL** with specific configuration:
+   - Database: `vet_medical_report_test`
+   - User: `postgres`
+   - Password: `postgres`
+   - Host: `localhost`
+   - Port: `5432`
+
+2. **Redis** running on `localhost:6379` (for Sidekiq background jobs)
+
+3. **Tesseract OCR** installed with language packs:
+   - `tesseract-ocr`
+   - `tesseract-ocr-eng` (English)
+   - `tesseract-ocr-spa` (Spanish)
+   - `tesseract-ocr-fra` (French)
+   - `tesseract-ocr-por` (Portuguese)
+   - `tesseract-ocr-ita` (Italian)
+
+4. **Environment Variables**:
+   - `GROQ_API_KEY` (for AI-powered extraction)
+   - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, etc.
+
+5. **Ruby gems** installed locally with `bundle install`
+
+### If You Still Want to Run Locally
+
+1. Install PostgreSQL and create the test database:
+   ```bash
+   createdb vet_medical_report_test
+   ```
+
+2. Install Redis:
+   ```bash
+   # macOS
+   brew install redis
+   brew services start redis
+   ```
+
+3. Install Tesseract with language packs:
+   ```bash
+   # macOS
+   brew install tesseract tesseract-lang
+   ```
+
+4. Install gems:
+   ```bash
+   cd backend
+   bundle install
+   ```
+
+5. Set environment variables in `.env` or export them:
+   ```bash
+   export DATABASE_HOST=localhost
+   export DATABASE_PORT=5432
+   export DATABASE_NAME=vet_medical_report_development
+   export DATABASE_USER=postgres
+   export DATABASE_PASSWORD=postgres
+   export REDIS_URL=redis://localhost:6379/0
+   export GROQ_API_KEY=your_api_key_here
+   ```
+
+6. Run migrations:
+   ```bash
+   cd backend
+   RAILS_ENV=test bundle exec rails db:create db:migrate
+   ```
+
+7. Run tests:
+   ```bash
+   cd backend
+   RAILS_ENV=test bundle exec rspec
+   ```
+
+**Recommendation**: Use Docker for development and testing. It's much simpler and ensures consistency across all environments.
 
 ## Useful Commands
 
@@ -103,9 +173,29 @@ docker-compose exec backend rails db:migrate
 
 ### Run tests
 
+**IMPORTANT**: Tests must be run with `RAILS_ENV=test` and `bundle exec` to ensure:
+1. Rails loads in test mode (initializes test configurations including Shoulda::Matchers)
+2. Correct gem versions from Gemfile.lock are used
+3. Test database is used instead of development database
+
 ```bash
-docker-compose exec backend rspec
+# From outside the container (recommended)
+docker-compose exec backend bash -c "cd /app && RAILS_ENV=test bundle exec rspec"
+
+# Or with detailed output
+docker-compose exec backend bash -c "cd /app && RAILS_ENV=test bundle exec rspec --format documentation"
+
+# From inside the container
+docker exec -it vet_medical_report_backend bash
+cd /app
+RAILS_ENV=test bundle exec rspec
 ```
+
+**Common error** ❌: Running just `rspec` or `rspec spec` will fail with:
+```
+NameError: uninitialized constant Shoulda
+```
+This happens because Rails is not initialized in test mode.
 
 ### Access PostgreSQL
 
