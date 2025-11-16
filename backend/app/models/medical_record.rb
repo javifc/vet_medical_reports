@@ -9,7 +9,7 @@ class MedicalRecord < ApplicationRecord
   before_save :set_original_filename, if: -> { document.attached? && original_filename.blank? }
 
   # Enums
-  enum status: {
+  enum :status, {
     pending: 'pending',
     processing: 'processing',
     completed: 'completed',
@@ -25,9 +25,8 @@ class MedicalRecord < ApplicationRecord
   scope :recent, -> { order(created_at: :desc) }
   scope :by_status, ->(status) { where(status: status) }
 
-
   def initialize(attributes = {})
-    super(attributes)
+    super
     self.status ||= :created
   end
 
@@ -36,7 +35,7 @@ class MedicalRecord < ApplicationRecord
     completed? || failed?
   end
 
-  def has_structured_data?
+  def structured_data?
     structured_data.present? && structured_data.any?
   end
 
@@ -63,8 +62,8 @@ class MedicalRecord < ApplicationRecord
     end
 
     # Size limit: 10MB
-    if document.byte_size > 10.megabytes
-      errors.add(:document, 'size must be less than 10MB')
-    end
+    return unless document.byte_size > 10.megabytes
+
+    errors.add(:document, 'size must be less than 10MB')
   end
 end

@@ -6,7 +6,7 @@ class ApplicationController < ActionController::API
   # Returns the current authenticated user
   def current_user
     return @current_user if defined?(@current_user)
-    
+
     @current_user = User.find_by(id: doorkeeper_token&.resource_owner_id) if doorkeeper_token
   end
 

@@ -1,9 +1,9 @@
 class ProcessMedicalRecordJob < ApplicationJob
   queue_as :default
 
-  def perform(medical_record_id)
+  def perform(medical_record_id) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     medical_record = MedicalRecord.find(medical_record_id)
-    
+
     # Update status to processing
     medical_record.update(status: :processing)
 
@@ -28,11 +28,9 @@ class ProcessMedicalRecordJob < ApplicationJob
       treatment: structured_data[:treatment],
       status: :completed
     )
-
   rescue StandardError => e
     Rails.logger.error("Failed to process medical record #{medical_record_id}: #{e.message}")
-    medical_record&.update(status: :failed) if medical_record
+    medical_record&.update(status: :failed)
     raise
   end
 end
-

@@ -1,23 +1,26 @@
 #!/usr/bin/env ruby
 # Integration Test 2: PNG with OCR - With Groq (AI-powered parsing)
 
-puts "=" * 80
-puts "INTEGRATION TEST 2: PNG + OCR WITH GROQ"
-puts "=" * 80
+# Load Rails environment
+require_relative '../config/environment'
+
+puts '=' * 80
+puts 'INTEGRATION TEST 2: PNG + OCR WITH GROQ'
+puts '=' * 80
 puts
 
 # Ensure Groq is enabled for this test
 ENV['GROQ_ENABLED'] = 'true'
-puts "GROQ_ENABLED set to: #{ENV['GROQ_ENABLED']}"
+puts "GROQ_ENABLED set to: #{ENV.fetch('GROQ_ENABLED', nil)}"
 
 # Check Groq availability
-groq_available = GroqStructuringService.groq_available?
+groq_available = GroqClient.available?
 puts "Groq API available: #{groq_available}"
 if groq_available
-  puts "Groq API URL: #{ENV['GROQ_API_URL']}"
+  puts "Groq API URL: #{ENV.fetch('GROQ_API_URL', nil)}"
   puts "Groq API Key: #{ENV['GROQ_API_KEY'] ? '[SET]' : '[NOT SET]'}"
 else
-  puts "WARNING: Groq is not available, will fall back to rules"
+  puts 'WARNING: Groq is not available, will fall back to rules'
 end
 puts
 
@@ -33,7 +36,7 @@ puts "File size: #{File.size(file_path)} bytes"
 puts
 
 # Create record and attach PNG
-puts "Creating medical record with PNG attachment..."
+puts 'Creating medical record with PNG attachment...'
 record = MedicalRecord.new(status: :pending)
 
 # Attach the PNG file
@@ -55,21 +58,21 @@ puts "Document content_type: #{record.document.content_type}"
 puts
 
 # Extract text using OCR
-puts "Extracting text from PNG using OCR..."
+puts 'Extracting text from PNG using OCR...'
 extractor = TextExtractionService.new(record)
 raw_text = extractor.extract
 
 if raw_text.nil? || raw_text.strip.empty?
-  puts "ERROR: No text extracted from PNG"
+  puts 'ERROR: No text extracted from PNG'
   exit 1
 end
 
-puts "Text extracted successfully!"
+puts 'Text extracted successfully!'
 puts "Raw text length: #{raw_text.length} characters"
-puts "First 300 chars:"
-puts "-" * 80
+puts 'First 300 chars:'
+puts '-' * 80
 puts raw_text[0..300]
-puts "-" * 80
+puts '-' * 80
 puts
 
 # Save raw text
@@ -78,11 +81,11 @@ record.status = :processing
 record.save
 
 # Parse data WITH Groq (standard parser)
-puts "Parsing data..."
+puts 'Parsing data...'
 if groq_available
-  puts "Using GROQ AI for intelligent parsing..."
+  puts 'Using GROQ AI for intelligent parsing...'
 else
-  puts "Groq unavailable, falling back to rule-based parsing..."
+  puts 'Groq unavailable, falling back to rule-based parsing...'
 end
 
 parser = MedicalDataParserService.new(record.raw_text)
@@ -92,7 +95,7 @@ puts
 puts "Structured data extracted (#{structured_data.size} fields):"
 structured_data.each do |key, value|
   display_value = value.to_s.gsub(/\s+/, ' ').strip
-  display_value = display_value[0..80] + "..." if display_value.length > 80
+  display_value = "#{display_value[0..80]}..." if display_value.length > 80
   puts "  #{key}: #{display_value}"
 end
 puts
@@ -109,7 +112,7 @@ record.treatment = structured_data[:treatment]
 record.status = :completed
 record.save
 
-puts "Final record state:"
+puts 'Final record state:'
 puts "  ID: #{record.id}"
 puts "  Status: #{record.status}"
 puts "  Original filename: #{record.original_filename}"
@@ -121,25 +124,21 @@ puts
 
 # Validation
 min_fields = 3
+puts '=' * 80
 if structured_data.size >= min_fields
-  puts "=" * 80
   if groq_available
-    puts "INTEGRATION TEST 2: PASSED ✓ (with Groq AI)"
+    puts 'INTEGRATION TEST 2: PASSED ✓ (with Groq AI)'
   else
-    puts "INTEGRATION TEST 2: PASSED ✓ (fallback to rules)"
+    puts 'INTEGRATION TEST 2: PASSED ✓ (fallback to rules)'
   end
   puts "Extracted #{structured_data.size} fields from PNG using OCR"
-  puts "=" * 80
-  
+  puts '=' * 80
+
   # Check if Groq provided better results than rule-based
-  if groq_available && structured_data.size >= 5
-    puts "Groq AI successfully enhanced data extraction!"
-  end
+  puts 'Groq AI successfully enhanced data extraction!' if groq_available && structured_data.size >= 5
 else
-  puts "=" * 80
-  puts "INTEGRATION TEST 2: FAILED"
+  puts 'INTEGRATION TEST 2: FAILED'
   puts "Only #{structured_data.size} fields extracted (minimum: #{min_fields})"
-  puts "=" * 80
+  puts '=' * 80
   exit 1
 end
-

@@ -1,6 +1,6 @@
 class Api::V1::MedicalRecordsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_medical_record, only: [:show, :update]
+  before_action :set_medical_record, only: %i[show update]
 
   # GET /api/v1/medical_records
   def index
@@ -15,9 +15,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
 
   # POST /api/v1/medical_records/upload
   def upload
-    unless params[:document].present?
-      return render json: { error: 'Document is required' }, status: :unprocessable_entity
-    end
+    return render json: { error: 'Document is required' }, status: :unprocessable_content if params[:document].blank?
 
     @medical_record = current_user.medical_records.new(document: params[:document])
 
@@ -25,7 +23,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
       ProcessMedicalRecordJob.perform_later(@medical_record.id)
       render json: MedicalRecordBlueprint.render(@medical_record), status: :created
     else
-      render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -34,7 +32,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
     if @medical_record.update(medical_record_params)
       render json: MedicalRecordBlueprint.render(@medical_record)
     else
-      render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_content
     end
   end
 

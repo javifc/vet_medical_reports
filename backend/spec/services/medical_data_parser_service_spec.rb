@@ -3,15 +3,15 @@ require 'rails_helper'
 RSpec.describe MedicalDataParserService do
   # Mock Groq to avoid external API calls
   before do
-    allow(GroqStructuringService).to receive(:groq_available?).and_return(false)
+    allow(GroqClient).to receive(:available?).and_return(false)
   end
-  
+
   describe '#parse' do
     context 'with complete medical record text' do
       let(:raw_text) do
         <<~TEXT
           Veterinary Medical Record
-          
+
           Patient Name: Max
           Species: Dog
           Breed: Golden Retriever
@@ -19,11 +19,11 @@ RSpec.describe MedicalDataParserService do
           Owner: John Smith
           Date: 2025-11-15
           Veterinarian: Dr. Jane Wilson
-          
+
           Diagnosis:
           Acute gastroenteritis with mild dehydration.
           Possible dietary indiscretion.
-          
+
           Treatment:
           - Fluid therapy (subcutaneous)
           - Metoclopramide 0.5mg/kg BID for 3 days
@@ -59,15 +59,15 @@ RSpec.describe MedicalDataParserService do
         expect(result[:diagnosis]).to include('Acute gastroenteritis')
       end
 
-    it 'extracts treatment' do
-      # Treatment can be a string or array depending on parsing result
-      treatment = result[:treatment]
-      if treatment.is_a?(Array)
-        expect(treatment.any? { |t| t.include?('Fluid therapy') }).to be true
-      else
-        expect(treatment).to include('Fluid therapy')
+      it 'extracts treatment' do
+        # Treatment can be a string or array depending on parsing result
+        treatment = result[:treatment]
+        if treatment.is_a?(Array)
+          expect(treatment.any? { |t| t.include?('Fluid therapy') }).to be true
+        else
+          expect(treatment).to include('Fluid therapy')
+        end
       end
-    end
 
       it 'extracts veterinarian' do
         expect(result[:veterinarian]).to eq('Dr. Jane Wilson')
@@ -83,7 +83,7 @@ RSpec.describe MedicalDataParserService do
         <<~TEXT
           Pet: Luna
           Species: Cat
-          
+
           Diagnosis: Upper respiratory infection
         TEXT
       end
@@ -110,7 +110,7 @@ RSpec.describe MedicalDataParserService do
           Raza: Pastor Alemán
           Edad: 3 años
           Propietario: María García
-          
+
           Diagnóstico: Otitis externa
           Tratamiento: Limpieza auricular y antibiótico tópico
         TEXT
@@ -163,7 +163,7 @@ RSpec.describe MedicalDataParserService do
 
     context 'with unstructured text' do
       let(:raw_text) do
-        "This is a random text with a Dog mentioned but no clear structure."
+        'This is a random text with a Dog mentioned but no clear structure.'
       end
 
       let(:service) { described_class.new(raw_text) }
@@ -185,4 +185,3 @@ RSpec.describe MedicalDataParserService do
     end
   end
 end
-

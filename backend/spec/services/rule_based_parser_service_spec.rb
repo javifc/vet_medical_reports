@@ -6,7 +6,7 @@ RSpec.describe RuleBasedParserService do
       let(:raw_text) do
         <<~TEXT
           Veterinary Medical Record
-          
+
           Patient Name: Max
           Species: Dog
           Breed: Golden Retriever
@@ -14,11 +14,11 @@ RSpec.describe RuleBasedParserService do
           Owner: John Smith
           Date: 2025-11-15
           Veterinarian: Dr. Jane Wilson
-          
+
           Diagnosis:
           Acute gastroenteritis with mild dehydration.
           Possible dietary indiscretion.
-          
+
           Treatment:
           - Fluid therapy (subcutaneous)
           - Metoclopramide 0.5mg/kg BID for 3 days
@@ -73,7 +73,7 @@ RSpec.describe RuleBasedParserService do
         <<~TEXT
           Pet: Luna
           Species: Cat
-          
+
           Diagnosis: Upper respiratory infection
         TEXT
       end
@@ -99,7 +99,7 @@ RSpec.describe RuleBasedParserService do
           Raza: Pastor Alemán
           Edad: 3 años
           Propietario: María García
-          
+
           Diagnóstico: Otitis externa
           Tratamiento: Limpieza auricular y antibiótico tópico
         TEXT
@@ -152,7 +152,7 @@ RSpec.describe RuleBasedParserService do
 
     context 'with unstructured text' do
       let(:raw_text) do
-        "This is a random text with a Dog mentioned but no clear structure."
+        'This is a random text with a Dog mentioned but no clear structure.'
       end
 
       let(:service) { described_class.new(raw_text) }
@@ -196,4 +196,3 @@ RSpec.describe RuleBasedParserService do
     end
   end
 end
-

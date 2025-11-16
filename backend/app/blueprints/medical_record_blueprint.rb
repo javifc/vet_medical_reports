@@ -7,14 +7,11 @@ class MedicalRecordBlueprint < Blueprinter::Base
   field :raw_text
   field :structured_data
 
-  field :document_url do |record, options|
-    if record.document.attached?
-      Rails.application.routes.url_helpers.rails_blob_url(record.document, only_path: true)
-    end
+  field :document_url do |record, _options|
+    Rails.application.routes.url_helpers.rails_blob_url(record.document, only_path: true) if record.document.attached?
   end
 
   view :list do
     excludes :raw_text, :diagnosis, :treatment, :notes
   end
 end
-

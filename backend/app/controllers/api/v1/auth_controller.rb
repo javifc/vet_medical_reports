@@ -1,5 +1,5 @@
 class Api::V1::AuthController < ApplicationController
-  before_action :authenticate_user!, only: [:me, :logout]
+  before_action :authenticate_user!, only: %i[me logout]
 
   # POST /api/v1/auth/register
   def register
@@ -20,7 +20,7 @@ class Api::V1::AuthController < ApplicationController
         expires_in: token.expires_in
       }, status: :created
     else
-      render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: user.errors.full_messages }, status: :unprocessable_content
     end
   end
 
@@ -76,4 +76,3 @@ class Api::V1::AuthController < ApplicationController
     }
   end
 end
-

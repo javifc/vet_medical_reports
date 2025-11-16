@@ -2,7 +2,7 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-puts "Creating test user..."
+Rails.logger.debug 'Creating test user...'
 
 user = User.find_or_initialize_by(email: 'test@example.com')
 user.assign_attributes(
@@ -12,14 +12,14 @@ user.assign_attributes(
 )
 
 if user.save
-  puts "✓ User created: #{user.email}"
-  puts "  Name: #{user.name}"
-  puts "  Password: password123"
+  Rails.logger.debug { "✓ User created: #{user.email}" }
+  Rails.logger.debug { "  Name: #{user.name}" }
+  Rails.logger.debug '  Password: password123'
 else
-  puts "✗ Error creating user: #{user.errors.full_messages.join(', ')}"
+  Rails.logger.debug { "✗ Error creating user: #{user.errors.full_messages.join(', ')}" }
 end
 
-puts "\nSeeds completed!"
-puts "\nYou can now login with:"
-puts "  Email: test@example.com"
-puts "  Password: password123"
+Rails.logger.debug "\nSeeds completed!"
+Rails.logger.debug "\nYou can now login with:"
+Rails.logger.debug '  Email: test@example.com'
+Rails.logger.debug '  Password: password123'

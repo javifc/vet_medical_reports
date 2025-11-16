@@ -1,0 +1,115 @@
+require:
+  - rubocop-rails
+  - rubocop-rspec
+  - rubocop-performance
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.4
+  Exclude:
+    - 'bin/**/*'
+    - 'db/schema.rb'
+    - 'db/migrate/**/*'
+    - 'node_modules/**/*'
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'log/**/*'
+    - 'storage/**/*'
+    - 'script/**/*'
+    - 'config/environments/**/*'
+    - 'config/initializers/**/*'
+    - 'config/puma.rb'
+    - 'config/boot.rb'
+    - 'config/application.rb'
+    - 'config.ru'
+    - 'Rakefile'
+
+# Prefer double quotes for strings
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+# Allow long lines in specs and migrations
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns: ['\A\s*#']
+  Exclude:
+    - 'spec/**/*'
+
+# Allow longer blocks in specs
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - 'config/routes.rb'
+
+# Allow longer methods in specs
+Metrics/MethodLength:
+  Max: 20
+  Exclude:
+    - 'spec/**/*'
+
+# Disable ABC size metric (too strict)
+Metrics/AbcSize:
+  Enabled: false
+
+# Allow longer classes
+Metrics/ClassLength:
+  Max: 150
+
+# Disable documentation requirement
+Style/Documentation:
+  Enabled: false
+
+# Allow empty lines around body
+Layout/EmptyLinesAroundBlockBody:
+  Enabled: false
+
+Layout/EmptyLinesAroundClassBody:
+  Enabled: false
+
+Layout/EmptyLinesAroundModuleBody:
+  Enabled: false
+
+# Use compact style for class/module definitions
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+# Disable frozen string literal comment
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# Allow both lambda styles
+Style/Lambda:
+  Enabled: false
+
+# Rails specific
+Rails/FilePath:
+  Enabled: false
+
+Rails/SkipsModelValidations:
+  Enabled: false
+
+# RSpec specific
+RSpec/ExampleLength:
+  Max: 20
+
+RSpec/MultipleExpectations:
+  Max: 10
+
+RSpec/NestedGroups:
+  Max: 5
+
+RSpec/ContextWording:
+  Enabled: false
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/requests/**/*'
+
+# Allow both and_return and block expectations
+RSpec/StubbedMock:
+  Enabled: false
+
+# Performance
+Performance/StringInclude:
+  Enabled: true
+

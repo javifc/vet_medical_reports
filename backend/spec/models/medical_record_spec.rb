@@ -2,20 +2,22 @@ require 'rails_helper'
 
 RSpec.describe MedicalRecord, type: :model do
   describe 'Active Storage' do
-    it { should have_one_attached(:document) }
+    it { is_expected.to have_one_attached(:document) }
   end
 
   describe 'validations' do
-    it { should validate_presence_of(:status) }
+    it { is_expected.to validate_presence_of(:status) }
 
     context 'on create' do
+      let(:user) { create(:user) }
+
       before do
         # Disable global Active Storage mock for validation tests
-        allow_any_instance_of(MedicalRecord).to receive(:document).and_call_original
+        allow_any_instance_of(described_class).to receive(:document).and_call_original
       end
 
       it 'requires document to be present' do
-        record = MedicalRecord.new
+        record = described_class.new(user: user)
         expect(record).not_to be_valid
         expect(record.errors[:document]).to include("can't be blank")
       end
@@ -24,10 +26,11 @@ RSpec.describe MedicalRecord, type: :model do
     context 'document format validation' do
       before do
         # Disable global Active Storage mock for validation tests
-        allow_any_instance_of(MedicalRecord).to receive(:document).and_call_original
+        allow_any_instance_of(described_class).to receive(:document).and_call_original
       end
 
-      let(:record) { MedicalRecord.new }
+      let(:user) { create(:user) }
+      let(:record) { described_class.new(user: user) }
 
       it 'accepts PDF files' do
         file = fixture_file_upload('test.pdf', 'application/pdf')
@@ -53,13 +56,18 @@ RSpec.describe MedicalRecord, type: :model do
   end
 
   describe 'enums' do
-    it { should define_enum_for(:status).with_values(pending: 'pending', processing: 'processing', completed: 'completed', failed: 'failed').backed_by_column_of_type(:string) }
+    it {
+      expect(subject).to define_enum_for(:status).with_values(pending: 'pending', processing: 'processing', completed: 'completed',
+                                                              failed: 'failed').backed_by_column_of_type(:string)
+    }
   end
 
   describe 'callbacks' do
+    let(:user) { create(:user) }
+
     it 'sets original_filename from document on save' do
       file = fixture_file_upload('test.pdf', 'application/pdf')
-      record = MedicalRecord.new
+      record = described_class.new(user: user)
       record.document.attach(file)
       record.save
       expect(record.original_filename).to eq('test.pdf')
@@ -72,7 +80,7 @@ RSpec.describe MedicalRecord, type: :model do
 
     describe '.recent' do
       it 'returns records ordered by created_at desc' do
-        expect(MedicalRecord.recent).to eq([newest, oldest])
+        expect(described_class.recent).to eq([newest, oldest])
       end
     end
 
@@ -81,8 +89,8 @@ RSpec.describe MedicalRecord, type: :model do
       let!(:completed) { create(:medical_record, status: :completed) }
 
       it 'filters by status' do
-        expect(MedicalRecord.by_status(:pending)).to include(pending)
-        expect(MedicalRecord.by_status(:pending)).not_to include(completed)
+        expect(described_class.by_status(:pending)).to include(pending)
+        expect(described_class.by_status(:pending)).not_to include(completed)
       end
     end
   end
@@ -107,20 +115,20 @@ RSpec.describe MedicalRecord, type: :model do
       end
     end
 
-    describe '#has_structured_data?' do
+    describe '#structured_data?' do
       it 'returns true when structured_data has values' do
         record.structured_data = { pet_name: 'Max' }
-        expect(record.has_structured_data?).to be true
+        expect(record.structured_data?).to be true
       end
 
       it 'returns false when structured_data is empty' do
         record.structured_data = {}
-        expect(record.has_structured_data?).to be false
+        expect(record.structured_data?).to be false
       end
 
       it 'returns false when structured_data is nil' do
         record.structured_data = nil
-        expect(record.has_structured_data?).to be false
+        expect(record.structured_data?).to be false
       end
     end
   end

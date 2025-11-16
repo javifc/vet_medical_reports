@@ -42,12 +42,12 @@ Doorkeeper.configure do
   # Under some circumstances you might want to have applications auto-approved,
   # so that the user skips the authorization step.
   # For example if dealing with a trusted application.
-  skip_authorization do |resource_owner, client|
+  skip_authorization do |_resource_owner, _client|
     true # Auto-approve all applications for API-only mode
   end
 
   # WWW-Authenticate Realm (default: "Doorkeeper").
-  realm "Vet Medical Report API"
+  realm 'Vet Medical Report API'
 
   # Forces the usage of the HTTPS protocol in non-native redirect uris (enabled
   # by default in non-development environments). OAuth2 delegates security in
@@ -92,7 +92,7 @@ Doorkeeper.configure do
 
   # Specify the resource owner model.
   # For API-only applications, we'll use the User model
-  resource_owner_from_credentials do |routes|
+  resource_owner_from_credentials do |_routes|
     user = User.find_by(email: params[:username])
     user if user&.authenticate(params[:password])
   end

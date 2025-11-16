@@ -1,10 +1,14 @@
 FactoryBot.define do
   factory :medical_record do
+    association :user
     status { :pending }
     structured_data { {} }
-    
-    # Skip document validation by default for unit tests
-    to_create { |instance| instance.save(validate: false) }
+
+    # Custom create logic to ensure user is set and skip document validation
+    to_create do |instance|
+      instance.user ||= FactoryBot.create(:user)
+      instance.save(validate: false)
+    end
 
     trait :with_data do
       pet_name { 'Max' }

@@ -28,10 +28,10 @@ class RuleBasedParserService
     s.gsub!('\r', '\n')
     s.gsub!('\t', ' ')
     # Normalize non-breaking spaces and strange unicode spaces
-    s.gsub!("\u00A0", ' ')
-    s.gsub!("\u200B", '')
+    s.tr!("\u00A0", ' ')
+    s.delete!("\u200B")
     # collapse multiple spaces and trim
-    s.gsub!(/[ ]{2,}/, ' ')
+    s.gsub!(/ {2,}/, ' ')
     s.gsub!(/\n{3,}/, "\n\n")
     s.strip
   end
@@ -61,7 +61,7 @@ class RuleBasedParserService
     # variants: array of possible label texts like ['Nombre', 'Nombre del animal']
     escaped = label_variants.map { |v| Regexp.escape(v) }
     # Match at start of line with required colon/dash/dot after label
-    /(?:^|\n)\s*(?:#{escaped.join('|')})\s*[:\-\.]\s*/i
+    /(?:^|\n)\s*(?:#{escaped.join('|')})\s*[:\-.]\s*/i
   end
 
   # Capture up to the next label (a line that ends with ':') or a blank line. Uses non-greedy match.
@@ -69,7 +69,7 @@ class RuleBasedParserService
     label = label_regex(label_variants)
     # (?m) multiline, (?U) ungreedy in Ruby -> use non-greedy quantifier + lookahead
     # label is non-capturing group, content is group 1
-    /(?:#{label.source})([\s\S]*?)(?=^\s*\w{1,30}\s*[:\-\.]|\z)/im
+    /(?:#{label.source})([\s\S]*?)(?=^\s*\w{1,30}\s*[:\-.]|\z)/im
   end
 
   def simple_field_after(label_variants)
@@ -82,6 +82,7 @@ class RuleBasedParserService
   def extract_with(pattern)
     res = @raw_text[pattern, 1]
     return nil if res.nil?
+
     clean = res.to_s.strip
     clean.empty? ? nil : clean
   end
@@ -90,8 +91,9 @@ class RuleBasedParserService
   def extract_pet_name
     # names can include accents, apostrophes, hyphens and multiple words
     patterns = [
-      simple_field_after(['Animal Name', 'Patient Name', 'Pet Name', 'Pet', "Patient", 'Paciente', 'Nombre', 'Mascota', "Nombre del animal"]),
-      /(?:^|\b)Name[:\-\.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\- ]{2,40})/i
+      simple_field_after(['Animal Name', 'Patient Name', 'Pet Name', 'Pet', 'Patient', 'Paciente', 'Nombre', 'Mascota',
+                          'Nombre del animal']),
+      /(?:^|\b)Name[:\-.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\- ]{2,40})/i
     ]
 
     patterns.each { |p| return normalize_name(extract_with(p)) if extract_with(p) }
@@ -109,8 +111,8 @@ class RuleBasedParserService
 
   def extract_breed
     patterns = [
-      simple_field_after(['Breed', 'Race', 'Raza', 'Razza', 'Raça']),
-      /\b(?:Labrador|Retriever|Siamese|Poodle|Bulldog|Beagle|Mixed|Cruce)\b/i,
+      simple_field_after(%w[Breed Race Raza Razza Raça]),
+      /\b(?:Labrador|Retriever|Siamese|Poodle|Bulldog|Beagle|Mixed|Cruce)\b/i
       # Fallback: any word after 'Raza' or 'Breed'
     ]
     patterns.each { |p| return extract_with(p) if extract_with(p) }
@@ -119,7 +121,7 @@ class RuleBasedParserService
 
   def extract_age
     patterns = [
-      simple_field_after(['Age', 'Edad', 'Âge', 'Idade', 'Età']),
+      simple_field_after(%w[Age Edad Âge Idade Età]),
       /(\d{1,2})\s*(?:years?|años?|yrs?|años|yrs|years|anos|meses|months?|mo)\b/i,
       /(\d)\s*y\b/i
     ]
@@ -128,15 +130,16 @@ class RuleBasedParserService
       val = extract_with(p)
       next unless val
       # If it captured only a number group (regex with group), return it; otherwise return normalized line
-      return val if val.match(/\d/)
+      return val if /\d/.match?(val)
     end
     nil
   end
 
   def extract_owner_name
     patterns = [
-      simple_field_after(["Owner's Name", 'Owner', 'Client Name', 'Propietario', 'Dueño', 'Cliente', 'Proprietario', 'Propriétaire']),
-      /(?:Owner|Propietario|Cliente|Guardian|Dueño)[:\-\.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\-\. ]{3,60})/i
+      simple_field_after(["Owner's Name", 'Owner', 'Client Name', 'Propietario', 'Dueño', 'Cliente', 'Proprietario',
+                          'Propriétaire']),
+      /(?:Owner|Propietario|Cliente|Guardian|Dueño)[:\-.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\-. ]{3,60})/i
     ]
     patterns.each { |p| return normalize_person_name(extract_with(p)) if extract_with(p) }
     nil
@@ -144,20 +147,22 @@ class RuleBasedParserService
 
   def extract_diagnosis
     # try block capture to allow multiple lines until next label
-    block_pattern = capture_block_after(['Diagnosis', 'Diagnostic', 'Diagnóstico', 'Diagnosi', 'Diagnóstico', 'Assessment', 'Evaluación', 'Évaluation'])
+    block_pattern = capture_block_after(%w[Diagnosis Diagnostic Diagnóstico Diagnosi Diagnóstico
+                                           Assessment Evaluación Évaluation])
     val = extract_with(block_pattern)
     return normalize_block(val) if val
 
     # fallback single-line
-    extract_with(simple_field_after(['Diagnosis', 'Diagnóstico', 'Assessment']))
+    extract_with(simple_field_after(%w[Diagnosis Diagnóstico Assessment]))
   end
 
   def extract_treatment
-    block_pattern = capture_block_after(['Treatment', 'Plan', 'Tratamiento', 'Medicación', 'Therapy', 'Terapia', 'Tratamento', 'Trattamento'])
+    block_pattern = capture_block_after(%w[Treatment Plan Tratamiento Medicación Therapy Terapia
+                                           Tratamento Trattamento])
     val = extract_with(block_pattern)
     return normalize_block(val) if val
 
-    extract_with(simple_field_after(['Treatment', 'Plan', 'Tratamiento']))
+    extract_with(simple_field_after(%w[Treatment Plan Tratamiento]))
   end
 
   def extract_veterinarian
@@ -171,9 +176,9 @@ class RuleBasedParserService
 
   def extract_date
     patterns = [
-      simple_field_after(['Date', 'Fecha', 'Data']),
-      /(\d{1,2}[\-\/]\d{1,2}[\-\/]\d{2,4})/,
-      /(\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2})/
+      simple_field_after(%w[Date Fecha Data]),
+      %r{(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})},
+      %r{(\d{4}[-/]\d{1,2}[-/]\d{1,2})}
     ]
     patterns.each { |p| return extract_with(p) if extract_with(p) }
     nil
@@ -182,19 +187,21 @@ class RuleBasedParserService
   # --- normalizers ---
   def normalize_name(v)
     return nil if v.nil?
+
     v.to_s.gsub(/[^A-Za-zÀ-ÖØ-öø-ÿ'\- ]/, '').squeeze(' ').strip
   end
 
   def normalize_person_name(v)
     return nil if v.nil?
+
     v.to_s.gsub(/[\t\n\r]+/, ' ').gsub(/\s{2,}/, ' ').strip
   end
 
   def normalize_block(v)
     return nil if v.nil?
+
     # remove repeated label at start and trim
-    v = v.gsub(/^(?:Diagnosis|Diagnóstico|Tratamiento|Treatment)[:\-\.\s]*/i, '')
+    v = v.gsub(/^(?:Diagnosis|Diagnóstico|Tratamiento|Treatment)[:\-.\s]*/i, '')
     v.strip
   end
 end
-

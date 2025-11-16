@@ -1,15 +1,18 @@
 #!/usr/bin/env ruby
 # Integration Test 1: Without Groq (Rule-based parsing only)
 
-puts "=" * 80
-puts "INTEGRATION TEST 1: WITHOUT GROQ (Rule-based parsing only)"
-puts "=" * 80
+# Load Rails environment
+require_relative '../config/environment'
+
+puts '=' * 80
+puts 'INTEGRATION TEST 1: WITHOUT GROQ (Rule-based parsing only)'
+puts '=' * 80
 puts
 
 # Disable Groq for this test
 ENV['GROQ_ENABLED'] = 'false'
-puts "GROQ_ENABLED set to: #{ENV['GROQ_ENABLED']}"
-puts "Groq available: #{GroqStructuringService.groq_available?}"
+puts "GROQ_ENABLED set to: #{ENV.fetch('GROQ_ENABLED', nil)}"
+puts "Groq available: #{GroqClient.available?}"
 puts
 
 # Simulate file upload
@@ -24,7 +27,7 @@ puts "Document loaded (#{file_content.length} characters)"
 puts
 
 # Create record
-puts "Creating medical record..."
+puts 'Creating medical record...'
 record = MedicalRecord.new
 record.status = :pending
 record.raw_text = file_content
@@ -33,8 +36,8 @@ puts "Record created with ID: #{record.id}"
 puts
 
 # Parse data using MedicalDataParserService (will use rule-based since Groq is disabled)
-puts "Parsing data via MedicalDataParserService..."
-puts "Expected to use rule-based parsing (Groq disabled)..."
+puts 'Parsing data via MedicalDataParserService...'
+puts 'Expected to use rule-based parsing (Groq disabled)...'
 
 parser = MedicalDataParserService.new(record.raw_text)
 structured_data = parser.parse
@@ -58,7 +61,7 @@ record.treatment = structured_data[:treatment]
 record.status = :completed
 record.save(validate: false)
 
-puts "Record updated:"
+puts 'Record updated:'
 puts "  Status: #{record.status}"
 puts "  Pet Name: #{record.pet_name}"
 puts "  Species: #{record.species}"
@@ -67,14 +70,12 @@ puts "  Owner: #{record.owner_name}"
 puts "  Diagnosis: #{record.diagnosis.to_s[0..50]}..."
 puts
 
+puts '=' * 80
 if structured_data.size >= 5
-  puts "=" * 80
-  puts "INTEGRATION TEST 1: PASSED ✓"
-  puts "=" * 80
+  puts 'INTEGRATION TEST 1: PASSED ✓'
+  puts '=' * 80
 else
-  puts "=" * 80
-  puts "INTEGRATION TEST 1: FAILED (insufficient fields extracted)"
-  puts "=" * 80
+  puts 'INTEGRATION TEST 1: FAILED (insufficient fields extracted)'
+  puts '=' * 80
   exit 1
 end
-

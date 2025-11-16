@@ -1,15 +1,18 @@
 #!/usr/bin/env ruby
 # Integration Test 1: PNG with OCR - Without Groq (Rule-based parsing only)
 
-puts "=" * 80
-puts "INTEGRATION TEST 1: PNG + OCR WITHOUT GROQ"
-puts "=" * 80
+# Load Rails environment
+require_relative '../config/environment'
+
+puts '=' * 80
+puts 'INTEGRATION TEST 1: PNG + OCR WITHOUT GROQ'
+puts '=' * 80
 puts
 
 # Disable Groq for this test
 ENV['GROQ_ENABLED'] = 'false'
-puts "GROQ_ENABLED set to: #{ENV['GROQ_ENABLED']}"
-puts "Groq available: #{GroqStructuringService.groq_available?}"
+puts "GROQ_ENABLED set to: #{ENV.fetch('GROQ_ENABLED', nil)}"
+puts "Groq available: #{GroqClient.available?}"
 puts
 
 # Load PNG file
@@ -24,7 +27,7 @@ puts "File size: #{File.size(file_path)} bytes"
 puts
 
 # Create record and attach PNG
-puts "Creating medical record with PNG attachment..."
+puts 'Creating medical record with PNG attachment...'
 record = MedicalRecord.new(status: :pending)
 
 # Attach the PNG file
@@ -46,21 +49,21 @@ puts "Document content_type: #{record.document.content_type}"
 puts
 
 # Extract text using OCR
-puts "Extracting text from PNG using OCR..."
+puts 'Extracting text from PNG using OCR...'
 extractor = TextExtractionService.new(record)
 raw_text = extractor.extract
 
 if raw_text.nil? || raw_text.strip.empty?
-  puts "ERROR: No text extracted from PNG"
+  puts 'ERROR: No text extracted from PNG'
   exit 1
 end
 
-puts "Text extracted successfully!"
+puts 'Text extracted successfully!'
 puts "Raw text length: #{raw_text.length} characters"
-puts "First 300 chars:"
-puts "-" * 80
+puts 'First 300 chars:'
+puts '-' * 80
 puts raw_text[0..300]
-puts "-" * 80
+puts '-' * 80
 puts
 
 # Save raw text
@@ -69,8 +72,8 @@ record.status = :processing
 record.save
 
 # Parse data using MedicalDataParserService (will use rule-based since Groq is disabled)
-puts "Parsing data via MedicalDataParserService..."
-puts "Expected to use rule-based parsing (Groq disabled)..."
+puts 'Parsing data via MedicalDataParserService...'
+puts 'Expected to use rule-based parsing (Groq disabled)...'
 
 parser = MedicalDataParserService.new(record.raw_text)
 structured_data = parser.parse
@@ -79,7 +82,7 @@ puts
 puts "Structured data extracted (#{structured_data.size} fields):"
 structured_data.each do |key, value|
   display_value = value.to_s.gsub(/\s+/, ' ').strip
-  display_value = display_value[0..80] + "..." if display_value.length > 80
+  display_value = "#{display_value[0..80]}..." if display_value.length > 80
   puts "  #{key}: #{display_value}"
 end
 puts
@@ -96,7 +99,7 @@ record.treatment = structured_data[:treatment]
 record.status = :completed
 record.save
 
-puts "Final record state:"
+puts 'Final record state:'
 puts "  ID: #{record.id}"
 puts "  Status: #{record.status}"
 puts "  Original filename: #{record.original_filename}"
@@ -108,16 +111,14 @@ puts
 
 # Validation
 min_fields = 3
+puts '=' * 80
 if structured_data.size >= min_fields
-  puts "=" * 80
-  puts "INTEGRATION TEST 1: PASSED ✓"
+  puts 'INTEGRATION TEST 1: PASSED ✓'
   puts "Extracted #{structured_data.size} fields from PNG using OCR + rule-based parsing"
-  puts "=" * 80
+  puts '=' * 80
 else
-  puts "=" * 80
-  puts "INTEGRATION TEST 1: FAILED"
+  puts 'INTEGRATION TEST 1: FAILED'
   puts "Only #{structured_data.size} fields extracted (minimum: #{min_fields})"
-  puts "=" * 80
+  puts '=' * 80
   exit 1
 end
-

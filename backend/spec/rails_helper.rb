@@ -3,7 +3,7 @@ require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
-abort("The Rails environment is running in production mode!") if Rails.env.production?
+abort('The Rails environment is running in production mode!') if Rails.env.production?
 require 'rspec/rails'
 require 'sidekiq/testing'
 # Add additional requires below this line. Rails is not loaded until this point!
@@ -21,7 +21,7 @@ require 'sidekiq/testing'
 # directory. Alternatively, in the individual `*_spec.rb` files, manually
 # require only the support files necessary.
 #
-# Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
+Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
 
 # Checks for pending migrations and applies them before tests are run.
 # If you are not using ActiveRecord, you can remove these lines.
@@ -69,46 +69,43 @@ RSpec.configure do |config|
 
   # Sidekiq configuration for testing
   # Jobs are not executed, just stored in an array for inspection
-  config.before(:each) do
+  config.before do
     Sidekiq::Testing.fake!
     Sidekiq::Worker.clear_all
   end
 
   # Active Storage configuration for testing
   # Mock document attachment for MedicalRecord to avoid real file I/O
-  config.before(:each) do
+  config.before do
     # Create a mock attachment
     mock_blob = double('ActiveStorage::Blob',
-      id: 1,
-      filename: 'test.pdf',
-      content_type: 'application/pdf',
-      byte_size: 1024,
-      key: 'fake-key',
-      download: 'fake content',
-      open: StringIO.new('fake content'),
-      signed_id: 'fake-signed-id-123'
-    )
-    
+                       id: 1,
+                       filename: 'test.pdf',
+                       content_type: 'application/pdf',
+                       byte_size: 1024,
+                       key: 'fake-key',
+                       download: 'fake content',
+                       open: StringIO.new('fake content'),
+                       signed_id: 'fake-signed-id-123')
+
     mock_file = double('File',
-      path: '/tmp/fake_document.pdf',
-      read: 'fake file content',
-      close: nil
-    )
-    
+                       path: '/tmp/fake_document.pdf',
+                       read: 'fake file content',
+                       close: nil)
+
     mock_attachment = double('ActiveStorage::Attached::One',
-      attached?: true,
-      blob: mock_blob,
-      filename: 'test.pdf',
-      content_type: 'application/pdf',
-      attach: true,
-      purge: true,
-      byte_size: 1024,
-      signed_id: 'fake-signed-id-123'
-    )
-    
+                             attached?: true,
+                             blob: mock_blob,
+                             filename: 'test.pdf',
+                             content_type: 'application/pdf',
+                             attach: true,
+                             purge: true,
+                             byte_size: 1024,
+                             signed_id: 'fake-signed-id-123')
+
     # Allow open to yield a file handle
     allow(mock_attachment).to receive(:open).and_yield(mock_file)
-    
+
     # Stub document method on MedicalRecord instances
     allow_any_instance_of(MedicalRecord).to receive(:document).and_return(mock_attachment)
   end
