@@ -8,7 +8,8 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
     # Allow requests from React frontend in development
-    origins "localhost:3000", "localhost:5173", "127.0.0.1:3000", "127.0.0.1:5173"
+    origins "localhost:3000", "localhost:3001", "localhost:5173", 
+            "127.0.0.1:3000", "127.0.0.1:3001", "127.0.0.1:5173"
 
     resource "*",
       headers: :any,
