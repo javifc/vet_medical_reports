@@ -9,6 +9,11 @@ RSpec.describe MedicalRecord, type: :model do
     it { should validate_presence_of(:status) }
 
     context 'on create' do
+      before do
+        # Disable global Active Storage mock for validation tests
+        allow_any_instance_of(MedicalRecord).to receive(:document).and_call_original
+      end
+
       it 'requires document to be present' do
         record = MedicalRecord.new
         expect(record).not_to be_valid
@@ -17,6 +22,11 @@ RSpec.describe MedicalRecord, type: :model do
     end
 
     context 'document format validation' do
+      before do
+        # Disable global Active Storage mock for validation tests
+        allow_any_instance_of(MedicalRecord).to receive(:document).and_call_original
+      end
+
       let(:record) { MedicalRecord.new }
 
       it 'accepts PDF files' do

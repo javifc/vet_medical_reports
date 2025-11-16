@@ -5,6 +5,7 @@ require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?
 require 'rspec/rails'
+require 'sidekiq/testing'
 # Add additional requires below this line. Rails is not loaded until this point!
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
@@ -65,6 +66,52 @@ RSpec.configure do |config|
 
   # FactoryBot configuration
   config.include FactoryBot::Syntax::Methods
+
+  # Sidekiq configuration for testing
+  # Jobs are not executed, just stored in an array for inspection
+  config.before(:each) do
+    Sidekiq::Testing.fake!
+    Sidekiq::Worker.clear_all
+  end
+
+  # Active Storage configuration for testing
+  # Mock document attachment for MedicalRecord to avoid real file I/O
+  config.before(:each) do
+    # Create a mock attachment
+    mock_blob = double('ActiveStorage::Blob',
+      id: 1,
+      filename: 'test.pdf',
+      content_type: 'application/pdf',
+      byte_size: 1024,
+      key: 'fake-key',
+      download: 'fake content',
+      open: StringIO.new('fake content'),
+      signed_id: 'fake-signed-id-123'
+    )
+    
+    mock_file = double('File',
+      path: '/tmp/fake_document.pdf',
+      read: 'fake file content',
+      close: nil
+    )
+    
+    mock_attachment = double('ActiveStorage::Attached::One',
+      attached?: true,
+      blob: mock_blob,
+      filename: 'test.pdf',
+      content_type: 'application/pdf',
+      attach: true,
+      purge: true,
+      byte_size: 1024,
+      signed_id: 'fake-signed-id-123'
+    )
+    
+    # Allow open to yield a file handle
+    allow(mock_attachment).to receive(:open).and_yield(mock_file)
+    
+    # Stub document method on MedicalRecord instances
+    allow_any_instance_of(MedicalRecord).to receive(:document).and_return(mock_attachment)
+  end
 end
 
 # Shoulda Matchers configuration

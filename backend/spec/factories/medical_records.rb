@@ -3,13 +3,8 @@ FactoryBot.define do
     status { :pending }
     structured_data { {} }
     
-    after(:build) do |medical_record|
-      medical_record.document.attach(
-        io: File.open(Rails.root.join('spec', 'fixtures', 'files', 'test.pdf')),
-        filename: 'test.pdf',
-        content_type: 'application/pdf'
-      )
-    end
+    # Skip document validation by default for unit tests
+    to_create { |instance| instance.save(validate: false) }
 
     trait :with_data do
       pet_name { 'Max' }

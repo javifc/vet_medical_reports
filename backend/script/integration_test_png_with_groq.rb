@@ -1,0 +1,141 @@
+#!/usr/bin/env ruby
+# Integration Test 2: PNG with OCR - With Groq (AI-powered parsing)
+
+puts "=" * 80
+puts "INTEGRATION TEST 2: PNG + OCR WITH GROQ"
+puts "=" * 80
+puts
+
+# Check Groq availability
+groq_available = GroqStructuringService.groq_available?
+puts "Groq API available: #{groq_available}"
+if groq_available
+  puts "Groq API URL: #{ENV['GROQ_API_URL']}"
+  puts "Groq API Key: #{ENV['GROQ_API_KEY'] ? '[SET]' : '[NOT SET]'}"
+else
+  puts "WARNING: Groq is not available, will fall back to rules"
+end
+puts
+
+# Load PNG file
+file_path = Rails.root.join('spec', 'fixtures', 'files', 'vet_medical_record_sample.png')
+unless File.exist?(file_path)
+  puts "ERROR: PNG file not found at #{file_path}"
+  exit 1
+end
+
+puts "PNG file found: #{file_path}"
+puts "File size: #{File.size(file_path)} bytes"
+puts
+
+# Create record and attach PNG
+puts "Creating medical record with PNG attachment..."
+record = MedicalRecord.new(status: :pending)
+
+# Attach the PNG file
+record.document.attach(
+  io: File.open(file_path),
+  filename: 'vet_medical_record_sample.png',
+  content_type: 'image/png'
+)
+
+unless record.save
+  puts "ERROR: Failed to save record: #{record.errors.full_messages.join(', ')}"
+  exit 1
+end
+
+puts "Record created with ID: #{record.id}"
+puts "Document attached: #{record.document.attached?}"
+puts "Document filename: #{record.document.filename}"
+puts "Document content_type: #{record.document.content_type}"
+puts
+
+# Extract text using OCR
+puts "Extracting text from PNG using OCR..."
+extractor = TextExtractionService.new(record)
+raw_text = extractor.extract
+
+if raw_text.nil? || raw_text.strip.empty?
+  puts "ERROR: No text extracted from PNG"
+  exit 1
+end
+
+puts "Text extracted successfully!"
+puts "Raw text length: #{raw_text.length} characters"
+puts "First 300 chars:"
+puts "-" * 80
+puts raw_text[0..300]
+puts "-" * 80
+puts
+
+# Save raw text
+record.raw_text = raw_text
+record.status = :processing
+record.save
+
+# Parse data WITH Groq (standard parser)
+puts "Parsing data..."
+if groq_available
+  puts "Using GROQ AI for intelligent parsing..."
+else
+  puts "Groq unavailable, falling back to rule-based parsing..."
+end
+
+parser = MedicalDataParserService.new(record.raw_text)
+structured_data = parser.parse
+puts
+
+puts "Structured data extracted (#{structured_data.size} fields):"
+structured_data.each do |key, value|
+  display_value = value.to_s.gsub(/\s+/, ' ').strip
+  display_value = display_value[0..80] + "..." if display_value.length > 80
+  puts "  #{key}: #{display_value}"
+end
+puts
+
+# Update record with structured data
+record.structured_data = structured_data
+record.pet_name = structured_data[:pet_name]
+record.species = structured_data[:species]
+record.breed = structured_data[:breed]
+record.age = structured_data[:age]
+record.owner_name = structured_data[:owner_name]
+record.diagnosis = structured_data[:diagnosis]
+record.treatment = structured_data[:treatment]
+record.status = :completed
+record.save
+
+puts "Final record state:"
+puts "  ID: #{record.id}"
+puts "  Status: #{record.status}"
+puts "  Original filename: #{record.original_filename}"
+puts "  Pet Name: #{record.pet_name || '[not extracted]'}"
+puts "  Species: #{record.species || '[not extracted]'}"
+puts "  Breed: #{record.breed || '[not extracted]'}"
+puts "  Owner: #{record.owner_name || '[not extracted]'}"
+puts
+
+# Validation
+min_fields = 3
+if structured_data.size >= min_fields
+  puts "=" * 80
+  if groq_available
+    puts "INTEGRATION TEST 2: PASSED ✓ (with Groq AI)"
+  else
+    puts "INTEGRATION TEST 2: PASSED ✓ (fallback to rules)"
+  end
+  puts "Extracted #{structured_data.size} fields from PNG using OCR"
+  puts "=" * 80
+  
+  # Check if Groq provided better results than rule-based
+  if groq_available && structured_data.size >= 5
+    puts "Groq AI successfully enhanced data extraction!"
+  end
+else
+  puts "=" * 80
+  puts "INTEGRATION TEST 2: FAILED"
+  puts "Only #{structured_data.size} fields extracted (minimum: #{min_fields})"
+  puts "=" * 80
+  exit 1
+end
+

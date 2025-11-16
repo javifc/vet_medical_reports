@@ -1,6 +1,11 @@
 require 'rails_helper'
 
 RSpec.describe MedicalDataParserService do
+  # Mock Groq to avoid external API calls
+  before do
+    allow(GroqStructuringService).to receive(:groq_available?).and_return(false)
+  end
+  
   describe '#parse' do
     context 'with complete medical record text' do
       let(:raw_text) do

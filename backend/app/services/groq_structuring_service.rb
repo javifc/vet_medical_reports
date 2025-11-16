@@ -32,6 +32,8 @@ class GroqStructuringService
   end
 
   def self.groq_available?
+    return false if ENV.fetch('GROQ_ENABLED', 'true').to_s.downcase != 'true'
+
     # Check if Groq API key is configured
     api_key = ENV.fetch('GROQ_API_KEY', nil)
     Rails.logger.info("GROQ CHECK - API Key present: #{!api_key.blank?}")
