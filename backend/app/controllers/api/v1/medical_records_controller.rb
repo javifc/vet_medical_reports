@@ -22,7 +22,7 @@ class Api::V1::MedicalRecordsController < ApplicationController
 
     if @medical_record.save
       ProcessMedicalRecordJob.perform_later(@medical_record.id)
-      render json: MedicalRecordBlueprint.render(@medical_record)
+      render json: MedicalRecordBlueprint.render(@medical_record), status: :created
     else
       render json: { errors: @medical_record.errors.full_messages }, status: :unprocessable_entity
     end

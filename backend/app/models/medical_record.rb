@@ -7,7 +7,6 @@ class MedicalRecord < ApplicationRecord
 
   # Enums
   enum status: {
-    created: 'created',
     pending: 'pending',
     processing: 'processing',
     completed: 'completed',
