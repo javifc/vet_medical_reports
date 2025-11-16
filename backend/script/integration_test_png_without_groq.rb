@@ -62,20 +62,11 @@ record.raw_text = raw_text
 record.status = :processing
 record.save
 
-# Parse data WITHOUT Groq (force rule-based parsing)
+# Parse data WITHOUT Groq (use RuleBasedParserService directly)
 puts "Parsing data (rule-based only - Groq disabled)..."
+puts "Using RULE-BASED parsing..."
 
-class TestParserNoGroq < MedicalDataParserService
-  def parse
-    return {} if @raw_text.strip.empty?
-    
-    puts "Using RULE-BASED parsing..."
-    structured_data = extract_with_rules
-    compact_hash(structured_data)
-  end
-end
-
-parser = TestParserNoGroq.new(record.raw_text)
+parser = RuleBasedParserService.new(record.raw_text)
 structured_data = parser.parse
 puts
 

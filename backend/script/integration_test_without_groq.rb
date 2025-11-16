@@ -26,29 +26,11 @@ record.save(validate: false)
 puts "Record created with ID: #{record.id}"
 puts
 
-# Parse data WITHOUT Groq (mock it as unavailable)
+# Parse data WITHOUT Groq (use RuleBasedParserService directly)
 puts "Parsing data (rule-based only)..."
-puts "Mocking Groq as unavailable..."
+puts "Using RuleBasedParserService directly (bypassing Groq check)..."
 
-# Create a wrapper to force rule-based parsing
-class TestParser < MedicalDataParserService
-  def parse
-    return {} if @raw_text.strip.empty?
-
-    Rails.logger.info("\n" + "=" * 80)
-    Rails.logger.info("TEST PARSER - Groq disabled for test")
-    Rails.logger.info("=" * 80)
-    Rails.logger.info("PARSER - Using rule-based parsing")
-    
-    structured_data = extract_with_rules
-    compact = compact_hash(structured_data)
-    Rails.logger.info("PARSER - Rule-based extracted #{compact.size} fields: #{compact.keys.inspect}")
-    Rails.logger.info("=" * 80 + "\n")
-    compact
-  end
-end
-
-parser = TestParser.new(record.raw_text)
+parser = RuleBasedParserService.new(record.raw_text)
 structured_data = parser.parse
 puts
 
