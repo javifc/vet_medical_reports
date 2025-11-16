@@ -25,6 +25,7 @@ export interface MedicalRecord {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   original_filename: string | null;
   document_url: string | null;
+  raw_text: string | null;
   structured_data: Record<string, any>;
   created_at: string;
   updated_at: string;

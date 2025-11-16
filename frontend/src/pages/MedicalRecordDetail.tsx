@@ -234,6 +234,17 @@ export const MedicalRecordDetail: React.FC = () => {
           </div>
         </div>
 
+        {record.raw_text && (
+          <div className="detail-section">
+            <h2>Extracted Text</h2>
+            <div className="detail-field">
+              <div className="raw-text-container">
+                <pre className="raw-text">{record.raw_text}</pre>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="detail-section">
           <h2>Document Information</h2>
           <div className="detail-grid">
