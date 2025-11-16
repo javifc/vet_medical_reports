@@ -6,6 +6,12 @@ puts "INTEGRATION TEST 1: PNG + OCR WITHOUT GROQ"
 puts "=" * 80
 puts
 
+# Disable Groq for this test
+ENV['GROQ_ENABLED'] = 'false'
+puts "GROQ_ENABLED set to: #{ENV['GROQ_ENABLED']}"
+puts "Groq available: #{GroqStructuringService.groq_available?}"
+puts
+
 # Load PNG file
 file_path = Rails.root.join('spec', 'fixtures', 'files', 'vet_medical_record_sample.png')
 unless File.exist?(file_path)
@@ -62,11 +68,11 @@ record.raw_text = raw_text
 record.status = :processing
 record.save
 
-# Parse data WITHOUT Groq (use RuleBasedParserService directly)
-puts "Parsing data (rule-based only - Groq disabled)..."
-puts "Using RULE-BASED parsing..."
+# Parse data using MedicalDataParserService (will use rule-based since Groq is disabled)
+puts "Parsing data via MedicalDataParserService..."
+puts "Expected to use rule-based parsing (Groq disabled)..."
 
-parser = RuleBasedParserService.new(record.raw_text)
+parser = MedicalDataParserService.new(record.raw_text)
 structured_data = parser.parse
 puts
 

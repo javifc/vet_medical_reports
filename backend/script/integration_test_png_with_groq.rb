@@ -6,6 +6,10 @@ puts "INTEGRATION TEST 2: PNG + OCR WITH GROQ"
 puts "=" * 80
 puts
 
+# Ensure Groq is enabled for this test
+ENV['GROQ_ENABLED'] = 'true'
+puts "GROQ_ENABLED set to: #{ENV['GROQ_ENABLED']}"
+
 # Check Groq availability
 groq_available = GroqStructuringService.groq_available?
 puts "Groq API available: #{groq_available}"

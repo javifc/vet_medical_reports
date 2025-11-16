@@ -12,6 +12,8 @@ class GroqStructuringService
   def structure
     return {} if @raw_text.blank?
 
+    return {} unless GroqStructuringService.groq_available?
+
     Rails.logger.info("=" * 80)
     Rails.logger.info("GROQ STRUCTURING - Starting for #{@raw_text.length} characters")
     Rails.logger.info("=" * 80)
@@ -32,7 +34,13 @@ class GroqStructuringService
   end
 
   def self.groq_available?
-    return false if ENV.fetch('GROQ_ENABLED', 'true').to_s.downcase != 'true'
+    enabled = ENV.fetch('GROQ_ENABLED', 'true').to_s.downcase
+    Rails.logger.info("GROQ CHECK - GROQ_ENABLED: #{enabled}")
+    
+    if enabled != 'true'
+      Rails.logger.info("GROQ CHECK - Disabled via GROQ_ENABLED")
+      return false
+    end
 
     # Check if Groq API key is configured
     api_key = ENV.fetch('GROQ_API_KEY', nil)

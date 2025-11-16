@@ -6,6 +6,12 @@ puts "INTEGRATION TEST 1: WITHOUT GROQ (Rule-based parsing only)"
 puts "=" * 80
 puts
 
+# Disable Groq for this test
+ENV['GROQ_ENABLED'] = 'false'
+puts "GROQ_ENABLED set to: #{ENV['GROQ_ENABLED']}"
+puts "Groq available: #{GroqStructuringService.groq_available?}"
+puts
+
 # Simulate file upload
 file_path = Rails.root.join('test_documents', 'medical_record_spanish.txt')
 unless File.exist?(file_path)
@@ -26,11 +32,11 @@ record.save(validate: false)
 puts "Record created with ID: #{record.id}"
 puts
 
-# Parse data WITHOUT Groq (use RuleBasedParserService directly)
-puts "Parsing data (rule-based only)..."
-puts "Using RuleBasedParserService directly (bypassing Groq check)..."
+# Parse data using MedicalDataParserService (will use rule-based since Groq is disabled)
+puts "Parsing data via MedicalDataParserService..."
+puts "Expected to use rule-based parsing (Groq disabled)..."
 
-parser = RuleBasedParserService.new(record.raw_text)
+parser = MedicalDataParserService.new(record.raw_text)
 structured_data = parser.parse
 puts
 
