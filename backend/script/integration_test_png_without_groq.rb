@@ -1,36 +1,120 @@
 #!/usr/bin/env ruby
-# Integration Test 1: PNG with OCR - Without Groq (Rule-based parsing only)
+# Integration Test: PNG + OCR WITHOUT Groq (Rule-based parsing only)
+#
+# This test validates the COMPLETE flow without Groq:
+# 1. Document upload and attachment
+# 2. Job execution (ProcessMedicalRecordJob)
+# 3. OCR text extraction from PNG
+# 4. Rule-based data structuring
+# 5. Record update with extracted data
+# 6. Specific field values match expected data
 
-# Load Rails environment
 require_relative '../config/environment'
 
-puts '=' * 80
-puts 'INTEGRATION TEST 1: PNG + OCR WITHOUT GROQ'
-puts '=' * 80
-puts
+# Expected values from the veterinary medical record PNG (vet_medical_record_sample.png)
+# Based on actual content: Bella, a female Labrador Retriever owned by Naomi Ortiz
+EXPECTED_DATA = {
+  pet_name: 'Bella',
+  species: 'Dog',              # OCR might extract as "og" or "Dog"
+  breed: 'Labrador',           # Partial match (Labrador Retriever)
+  age: '5',                    # 5 years / 03-14-2084
+  owner_name: 'Naomi'          # Naomi Ortiz
+}.freeze
+
+REQUIRED_FIELDS = %i[pet_name species owner_name].freeze
+
+def print_header(title)
+  puts "\n#{'=' * 80}"
+  puts title.center(80)
+  puts '=' * 80
+end
+
+def print_section(title)
+  puts "\n#{'-' * 80}"
+  puts title
+  puts '-' * 80
+end
+
+def validate_field(key, expected, actual)
+  return false if actual.nil? || actual.to_s.strip.empty?
+
+  # Normalize for comparison (lowercase, strip whitespace)
+  actual_normalized = actual.to_s.downcase.strip
+  expected_normalized = expected.to_s.downcase.strip
+
+  # Check if actual contains expected (flexible matching)
+  actual_normalized.include?(expected_normalized)
+end
+
+def print_validation_results(record, expected_data, required_fields)
+  all_passed = true
+  matched_fields = []
+  failed_fields = []
+  missing_required = []
+
+  print_section('VALIDATION RESULTS')
+
+  # Filter out empty expected values (optional fields not in document)
+  expected_data = expected_data.reject { |_k, v| v.to_s.strip.empty? }
+
+  # Check all expected fields
+  expected_data.each do |key, expected_value|
+    actual_value = record.send(key)
+
+    if actual_value.nil? || actual_value.to_s.strip.empty?
+      status = required_fields.include?(key) ? '❌ MISSING (REQUIRED)' : '⚠️  MISSING (optional)'
+      puts "#{status.ljust(25)} #{key}: expected to contain '#{expected_value}'"
+      missing_required << key if required_fields.include?(key)
+      failed_fields << key
+      all_passed = false
+    elsif validate_field(key, expected_value, actual_value)
+      puts "#{'✅ MATCHED'.ljust(25)} #{key}: '#{actual_value}' (contains '#{expected_value}')"
+      matched_fields << key
+    else
+      puts "#{'❌ INCORRECT'.ljust(25)} #{key}: expected '#{expected_value}', got '#{actual_value}'"
+      failed_fields << key
+      all_passed = false
+    end
+  end
+
+  print_section('SUMMARY')
+  puts "Total fields extracted: #{matched_fields.size + failed_fields.size}"
+  puts "Expected fields matched: #{matched_fields.size}/#{expected_data.size}"
+  puts "Required fields missing: #{missing_required.size}/#{required_fields.size}"
+
+  if missing_required.any?
+    puts "\n❌ CRITICAL: Missing required fields: #{missing_required.join(', ')}"
+  end
+
+  all_passed
+end
+
+# ============================================================================
+# MAIN TEST EXECUTION
+# ============================================================================
+
+print_header('INTEGRATION TEST: WITHOUT GROQ')
 
 # Disable Groq for this test
 ENV['GROQ_ENABLED'] = 'false'
-puts "GROQ_ENABLED set to: #{ENV.fetch('GROQ_ENABLED', nil)}"
+puts "GROQ_ENABLED: #{ENV.fetch('GROQ_ENABLED', nil)}"
 puts "Groq available: #{GroqClient.available?}"
-puts
+puts 'Expected: Rule-based parsing only'
 
-# Load PNG file
+# Load PNG fixture
+print_section('1. CREATE MEDICAL RECORD WITH PNG')
 file_path = Rails.root.join('spec', 'fixtures', 'files', 'vet_medical_record_sample.png')
 unless File.exist?(file_path)
-  puts "ERROR: PNG file not found at #{file_path}"
+  puts "❌ ERROR: PNG file not found at #{file_path}"
   exit 1
 end
 
-puts "PNG file found: #{file_path}"
-puts "File size: #{File.size(file_path)} bytes"
-puts
+puts "✅ PNG file found: #{file_path}"
+puts "   File size: #{File.size(file_path)} bytes"
 
-# Create record and attach PNG
-puts 'Creating medical record with PNG attachment...'
-record = MedicalRecord.new(status: :pending)
-
-# Attach the PNG file
+# Create user and medical record
+user = User.first || User.create!(name: 'Test User', email: 'test@integration.com', password: 'password123')
+record = MedicalRecord.new(user: user, status: :pending)
 record.document.attach(
   io: File.open(file_path),
   filename: 'vet_medical_record_sample.png',
@@ -38,87 +122,90 @@ record.document.attach(
 )
 
 unless record.save
-  puts "ERROR: Failed to save record: #{record.errors.full_messages.join(', ')}"
+  puts "❌ ERROR: Failed to save record: #{record.errors.full_messages.join(', ')}"
   exit 1
 end
 
-puts "Record created with ID: #{record.id}"
-puts "Document attached: #{record.document.attached?}"
-puts "Document filename: #{record.document.filename}"
-puts "Document content_type: #{record.document.content_type}"
-puts
+puts "✅ Record created with ID: #{record.id}"
+puts "   Initial status: #{record.status}"
+puts "   Document attached: #{record.document.attached?}"
 
-# Extract text using OCR
-puts 'Extracting text from PNG using OCR...'
-extractor = TextExtractionService.new(record)
-raw_text = extractor.extract
+# Execute job synchronously (no Sidekiq delay)
+print_section('2. EXECUTE JOB (ProcessMedicalRecordJob)')
+puts 'Executing job synchronously...'
 
-if raw_text.nil? || raw_text.strip.empty?
-  puts 'ERROR: No text extracted from PNG'
+begin
+  ProcessMedicalRecordJob.new.perform(record.id)
+  puts "✅ Job completed successfully"
+rescue StandardError => e
+  puts "❌ ERROR: Job failed: #{e.message}"
+  puts e.backtrace.first(5).join("\n")
   exit 1
 end
 
-puts 'Text extracted successfully!'
-puts "Raw text length: #{raw_text.length} characters"
-puts 'First 300 chars:'
-puts '-' * 80
-puts raw_text[0..300]
-puts '-' * 80
-puts
+# Reload record to get updated data
+record.reload
 
-# Save raw text
-record.raw_text = raw_text
-record.status = :processing
-record.save
+# Verify job execution results
+print_section('3. VERIFY JOB EXECUTION')
+puts "Final status: #{record.status}"
+puts "Raw text extracted: #{record.raw_text.present? ? "#{record.raw_text.length} characters" : 'NO'}"
+puts "Structured data present: #{record.structured_data.present? ? 'YES' : 'NO'}"
 
-# Parse data using MedicalDataParserService (will use rule-based since Groq is disabled)
-puts 'Parsing data via MedicalDataParserService...'
-puts 'Expected to use rule-based parsing (Groq disabled)...'
-
-parser = MedicalDataParserService.new(record.raw_text)
-structured_data = parser.parse
-puts
-
-puts "Structured data extracted (#{structured_data.size} fields):"
-structured_data.each do |key, value|
-  display_value = value.to_s.gsub(/\s+/, ' ').strip
-  display_value = "#{display_value[0..80]}..." if display_value.length > 80
-  puts "  #{key}: #{display_value}"
+if record.status != 'completed'
+  puts "\n❌ ERROR: Job did not complete successfully (status: #{record.status})"
+  exit 1
 end
-puts
 
-# Update record with structured data
-record.structured_data = structured_data
-record.pet_name = structured_data[:pet_name]
-record.species = structured_data[:species]
-record.breed = structured_data[:breed]
-record.age = structured_data[:age]
-record.owner_name = structured_data[:owner_name]
-record.diagnosis = structured_data[:diagnosis]
-record.treatment = structured_data[:treatment]
-record.status = :completed
-record.save
+if record.raw_text.blank?
+  puts "\n❌ ERROR: No text was extracted from document"
+  exit 1
+end
 
-puts 'Final record state:'
-puts "  ID: #{record.id}"
-puts "  Status: #{record.status}"
-puts "  Original filename: #{record.original_filename}"
-puts "  Pet Name: #{record.pet_name || '[not extracted]'}"
-puts "  Species: #{record.species || '[not extracted]'}"
-puts "  Breed: #{record.breed || '[not extracted]'}"
-puts "  Owner: #{record.owner_name || '[not extracted]'}"
-puts
+puts "\n✅ Job execution verified"
 
-# Validation
-min_fields = 3
-puts '=' * 80
-if structured_data.size >= min_fields
-  puts 'INTEGRATION TEST 1: PASSED ✓'
-  puts "Extracted #{structured_data.size} fields from PNG using OCR + rule-based parsing"
-  puts '=' * 80
+# Display extracted text sample
+print_section('4. EXTRACTED TEXT (OCR)')
+puts "Length: #{record.raw_text.length} characters"
+puts "\nFirst 300 characters:"
+puts "#{'-' * 76}"
+puts record.raw_text[0..300].gsub("\n", "\n")
+puts "#{'-' * 76}"
+
+# Display structured data
+print_section('5. EXTRACTED STRUCTURED DATA')
+if record.structured_data.present?
+  puts "Fields in structured_data: #{record.structured_data.keys.size}"
+  record.structured_data.each do |key, value|
+    display_value = value.to_s.gsub(/\s+/, ' ').strip
+    display_value = "#{display_value[0..60]}..." if display_value.length > 60
+    puts "  - #{key.to_s.ljust(15)}: #{display_value}"
+  end
 else
-  puts 'INTEGRATION TEST 1: FAILED'
-  puts "Only #{structured_data.size} fields extracted (minimum: #{min_fields})"
-  puts '=' * 80
+  puts "⚠️  No structured_data present"
+end
+
+puts "\nFields in record attributes:"
+EXPECTED_DATA.keys.each do |key|
+  value = record.send(key)
+  display_value = value.to_s.gsub(/\s+/, ' ').strip
+  display_value = "#{display_value[0..60]}..." if display_value.length > 60
+  puts "  - #{key.to_s.ljust(15)}: #{display_value.empty? ? '<empty>' : display_value}"
+end
+
+# Validate extracted data against expected values
+print_section('6. VALIDATE EXTRACTED DATA')
+validation_passed = print_validation_results(record, EXPECTED_DATA, REQUIRED_FIELDS)
+
+# Final result
+print_header('TEST RESULT')
+if validation_passed
+  puts '✅ INTEGRATION TEST PASSED'.center(80)
+  puts 'Flow without Groq completed successfully'.center(80)
+  puts 'All required fields present and values match expected data'.center(80)
+  exit 0
+else
+  puts '❌ INTEGRATION TEST FAILED'.center(80)
+  puts 'Some required fields are missing or values do not match'.center(80)
   exit 1
 end

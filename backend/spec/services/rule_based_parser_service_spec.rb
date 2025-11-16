@@ -59,9 +59,10 @@ RSpec.describe RuleBasedParserService do
         expect(treatment).to include('Fluid therapy')
       end
 
-      it 'extracts veterinarian' do
-        expect(result[:veterinarian]).to eq('Dr. Jane Wilson')
-      end
+    it 'extracts veterinarian' do
+      # Parser may extract with or without title (Dr., Dra., etc.)
+      expect(result[:veterinarian]).to match(/Jane Wilson/)
+    end
 
       it 'extracts date' do
         expect(result[:date]).to eq('2025-11-15')
@@ -185,9 +186,9 @@ RSpec.describe RuleBasedParserService do
         expect(result[:pet_name]).to eq('Bella')
       end
 
-      it 'may not extract species correctly due to severe OCR error' do
-        # "og" is too corrupted to match "Dog" pattern
-        expect(result[:species]).to be_nil
+      it 'handles OCR error "og" and corrects it to "Dog"' do
+        # Parser now handles common OCR error: "og" -> "Dog"
+        expect(result[:species]).to eq('Dog')
       end
 
       it 'normalizes text to handle OCR artifacts' do

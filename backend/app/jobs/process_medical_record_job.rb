@@ -1,21 +1,23 @@
 class ProcessMedicalRecordJob < ApplicationJob
   queue_as :default
 
-  def perform(medical_record_id) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  def perform(medical_record_id)
     medical_record = MedicalRecord.find(medical_record_id)
-
-    # Update status to processing
     medical_record.update(status: :processing)
 
-    # Extract text from document
     extracted_text = TextExtractionService.new(medical_record).extract
-    Rails.logger.info("JOB - Extracted #{extracted_text&.length || 0} characters")
-
-    # Parse and structure medical data
     structured_data = MedicalDataParserService.new(extracted_text).parse
     Rails.logger.info("JOB - Structured data: #{structured_data.inspect}")
 
-    # Save extracted text and structured data
+    update_record_with_data(medical_record, extracted_text, structured_data)
+  rescue StandardError => e
+    handle_processing_error(medical_record, medical_record_id, e)
+    raise
+  end
+
+  private
+
+  def update_record_with_data(medical_record, extracted_text, structured_data)
     medical_record.update(
       raw_text: extracted_text,
       structured_data: structured_data,
@@ -28,9 +30,10 @@ class ProcessMedicalRecordJob < ApplicationJob
       treatment: structured_data[:treatment],
       status: :completed
     )
-  rescue StandardError => e
-    Rails.logger.error("Failed to process medical record #{medical_record_id}: #{e.message}")
+  end
+
+  def handle_processing_error(medical_record, medical_record_id, error)
+    Rails.logger.error("Failed to process medical record #{medical_record_id}: #{error.message}")
     medical_record&.update(status: :failed)
-    raise
   end
 end

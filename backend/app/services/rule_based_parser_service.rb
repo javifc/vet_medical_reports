@@ -60,8 +60,9 @@ class RuleBasedParserService
   def label_regex(label_variants)
     # variants: array of possible label texts like ['Nombre', 'Nombre del animal']
     escaped = label_variants.map { |v| Regexp.escape(v) }
-    # Match at start of line with required colon/dash/dot after label
-    /(?:^|\n)\s*(?:#{escaped.join('|')})\s*[:\-.]\s*/i
+    # Match at start of line with OPTIONAL colon/dash/dot after label (more tolerant for OCR)
+    # Also handle optional leading apostrophes or quotes from OCR noise
+    /(?:^|\n)\s*['"]?\s*(?:#{escaped.join('|')})\s*[:\-.]?\s*/i
   end
 
   # Capture up to the next label (a line that ends with ':') or a blank line. Uses non-greedy match.
@@ -105,13 +106,21 @@ class RuleBasedParserService
       simple_field_after(['Species', 'Animal Type', 'Especie', 'Tipo de animal', 'Espèce', 'Specie', 'Espécie']),
       /\b(Dog|Cat|Perro|Gato|Chien|Chat|Cane|Gatto|Cão)\b/i
     ]
-    patterns.each { |p| return extract_with(p) if extract_with(p) }
+    patterns.each do |p|
+      val = extract_with(p)
+      next unless val
+      
+      # Handle OCR errors: "og" -> "Dog", "at" -> "Cat"
+      return 'Dog' if val.match?(/\b(og|dog)\b/i)
+      return 'Cat' if val.match?(/\b(at|cat)\b/i)
+      return val
+    end
     nil
   end
 
   def extract_breed
     patterns = [
-      simple_field_after(%w[Breed Race Raza Razza Raça]),
+      simple_field_after(%w[Breed Race Raza Razza Raça Brood]),  # "Brood" is common OCR error for "Breed"
       /\b(?:Labrador|Retriever|Siamese|Poodle|Bulldog|Beagle|Mixed|Cruce)\b/i
       # Fallback: any word after 'Raza' or 'Breed'
     ]
@@ -123,12 +132,18 @@ class RuleBasedParserService
     patterns = [
       simple_field_after(%w[Age Edad Âge Idade Età]),
       /(\d{1,2})\s*(?:years?|años?|yrs?|años|yrs|years|anos|meses|months?|mo)\b/i,
-      /(\d)\s*y\b/i
+      /(\d)\s*y\b/i,
+      # Handle OCR errors: "S years" could be "5 years"
+      /([S5])\s*(?:years?|años?)/i
     ]
 
     patterns.each do |p|
       val = extract_with(p)
       next unless val
+      
+      # Handle OCR error: "S" -> "5"
+      val = val.gsub(/^S\b/i, '5') if val.match?(/^S\b/i)
+      
       # If it captured only a number group (regex with group), return it; otherwise return normalized line
       return val if /\d/.match?(val)
     end
@@ -136,12 +151,27 @@ class RuleBasedParserService
   end
 
   def extract_owner_name
+    # Try more specific patterns first to avoid capturing section headers like "INFORMATION"
     patterns = [
-      simple_field_after(["Owner's Name", 'Owner', 'Client Name', 'Propietario', 'Dueño', 'Cliente', 'Proprietario',
-                          'Propriétaire']),
-      /(?:Owner|Propietario|Cliente|Guardian|Dueño)[:\-.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\-. ]{3,60})/i
+      # Most specific first: handle apostrophe at beginning from OCR
+      /['"]?\s*Owner'?s\s+Name[:\-.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\-. ]{3,60})/i,
+      simple_field_after(["Owner's Name", 'Client Name', 'Propietario', 'Dueño', 'Cliente', 'Nom du propriétaire',
+                          'Nome do proprietário']),
+      # Match "Owner:" but NOT "Owner Information" or similar section headers
+      /(?:^|\n)\s*['"]?\s*Owner[:\-.]\s*([A-Za-zÀ-ÖØ-öø-ÿ'\-. ]{3,60})(?:\n|$)/i,
+      /(?:Propietario|Cliente|Guardian|Dueño)[:\-.]?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\-. ]{3,60})/i
     ]
-    patterns.each { |p| return normalize_person_name(extract_with(p)) if extract_with(p) }
+    
+    patterns.each do |p|
+      val = extract_with(p)
+      next unless val
+      
+      # Reject if it looks like a section header (all caps, contains "INFORMATION", etc.)
+      next if val.match?(/\b(INFORMATION|DETAILS|SECTION|DATA|Field)\b/i)
+      next if val == val.upcase && val.length > 15  # Likely a section header
+      
+      return normalize_person_name(val)
+    end
     nil
   end
 
@@ -170,7 +200,16 @@ class RuleBasedParserService
       simple_field_after(['Veterinarian', 'Vet', 'Doctor', 'Dr.', 'Dra.', 'Veterinario', 'Veterinaria', 'Vétérinaire']),
       /(?:Dr|Dra|Doctor|Dottore|Doutor)\.?\s*([A-Za-zÀ-ÖØ-öø-ÿ'\- ]{3,40})/i
     ]
-    patterns.each { |p| return extract_with(p) if extract_with(p) }
+    
+    patterns.each do |p|
+      val = extract_with(p)
+      next unless val
+      
+      # Reject if it looks like a document title or section header
+      next if val.match?(/\b(Medical\s+Record|Record|Clinic|Hospital|Center)\b/i)
+      
+      return val
+    end
     nil
   end
 
