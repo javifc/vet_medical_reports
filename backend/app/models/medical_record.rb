@@ -1,14 +1,10 @@
 class MedicalRecord < ApplicationRecord
-  # Associations
   belongs_to :user
 
-  # Active Storage
   has_one_attached :document
 
-  # Callbacks
   before_save :set_original_filename, if: -> { document.attached? && original_filename.blank? }
 
-  # Enums
   enum :status, {
     pending: 'pending',
     processing: 'processing',
@@ -16,12 +12,10 @@ class MedicalRecord < ApplicationRecord
     failed: 'failed'
   }
 
-  # Validations
   validates :status, presence: true, inclusion: { in: statuses.keys }
   validates :document, presence: true, on: :create
   validate :document_format, if: -> { document.attached? }
 
-  # Scopes
   scope :recent, -> { order(created_at: :desc) }
   scope :by_status, ->(status) { where(status: status) }
 
@@ -30,7 +24,6 @@ class MedicalRecord < ApplicationRecord
     self.status ||= :created
   end
 
-  # Instance methods
   def processed?
     completed? || failed?
   end

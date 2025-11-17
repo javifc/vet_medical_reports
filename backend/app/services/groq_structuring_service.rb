@@ -1,5 +1,8 @@
 require_relative '../../lib/groq_client'
 
+# 
+# Service responsible for structuring medical data using Groq AI.
+#
 class GroqStructuringService
   class StructuringError < StandardError; end
 
@@ -10,18 +13,13 @@ class GroqStructuringService
   def structure
     return {} if @raw_text.blank?
 
-    Rails.logger.info('=' * 80)
     Rails.logger.info("GROQ STRUCTURING - Starting for #{@raw_text.length} characters")
-    Rails.logger.info('=' * 80)
 
     response_content = call_groq
-    Rails.logger.info("GROQ RESPONSE: #{response_content[0..200]}...") if response_content
 
     parsed_data = parse_response(response_content)
     Rails.logger.info("PARSED DATA: #{parsed_data.inspect}")
-    Rails.logger.info('=' * 80)
 
-    Rails.logger.info("Groq structured #{parsed_data.keys.size} fields")
     parsed_data
   rescue GroqClient::RequestError, GroqClient::AuthenticationError, GroqClient::RateLimitError, StandardError => e
     Rails.logger.error("GROQ ERROR: #{e.class} - #{e.message}")
@@ -58,6 +56,17 @@ class GroqStructuringService
       max_tokens: 300
     )
 
+    # This is the response from the groq api
+    # it is a hash with the following structure:
+    # {
+    #   "choices": [
+    #     {
+    #       "message": {
+    #         "content": "..."
+    #       }
+    #     }
+    #   ]
+    # }
     response.dig('choices', 0, 'message', 'content')
   rescue StandardError => e
     raise StructuringError, "Groq request failed: #{e.message}"

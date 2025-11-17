@@ -1,3 +1,7 @@
+# 
+# Service responsible for extracting text from medical records.
+# Supports PDF and image documents.
+#
 class TextExtractionService
   class ExtractionError < StandardError; end
 

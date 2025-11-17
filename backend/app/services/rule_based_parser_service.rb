@@ -1,11 +1,7 @@
-# RuleBasedParserService
+# 
 # Service responsible for extracting structured medical data using rule-based patterns.
 # Supports multiple languages (English, Spanish, French, Portuguese, Italian).
 # Tolerant to OCR errors and various document formats.
-#
-# Usage:
-#   parser = RuleBasedParserService.new(raw_text)
-#   structured_data = parser.parse
 #
 class RuleBasedParserService
   def initialize(raw_text)
